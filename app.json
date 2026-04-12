@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Labrats",
-    "slug": "Labrats",
+    "name": "stemm-app-fresh",
+    "slug": "stemm-app-fresh",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "labrats",
+    "scheme": "stemmappfresh",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

@@ -1,18 +1,14 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-export default function HomeScreen() {
+export default function LoginScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Home Page</Text>
-      <Text style={styles.text}>Welcome to the STEMM app.</Text>
+      <Text style={styles.title}>Login Page</Text>
+      <Text style={styles.text}>Students can log in here.</Text>
 
-      <Pressable style={styles.button} onPress={() => router.push('/team-formation')}>
-        <Text style={styles.buttonText}>Go to Team Formation</Text>
-      </Pressable>
-
-      <Pressable style={styles.button} onPress={() => router.push('/rating')}>
-        <Text style={styles.buttonText}>Go to Rating Page</Text>
+      <Pressable style={styles.button} onPress={() => router.replace('/')}>
+        <Text style={styles.buttonText}>Log In</Text>
       </Pressable>
     </View>
   );
@@ -40,7 +36,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    marginTop: 10,
   },
   buttonText: {
     color: '#fff',
