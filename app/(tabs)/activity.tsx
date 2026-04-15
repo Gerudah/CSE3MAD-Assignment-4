@@ -1,5 +1,7 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Button, Card, Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const activities = [
   {
@@ -62,81 +64,62 @@ const activities = [
 
 export default function ActivityScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Activity Page</Text>
-      <Text style={styles.subtitle}>Choose a STEMM activity below.</Text>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text variant="headlineLarge" style={styles.title}>Activity Page</Text>
+        <Text variant="bodyLarge" style={styles.subtitle}>Choose a STEMM activity below.</Text>
 
-      {activities.map((activity) => (
-        <View key={activity.id} style={styles.card}>
-          <Text style={styles.category}>{activity.category}</Text>
-          <Text style={styles.activityName}>{activity.name}</Text>
-          <Text style={styles.detail}>{activity.description}</Text>
-          <Text style={styles.detail}>Difficulty: {activity.difficulty}</Text>
-          <Text style={styles.detail}>Duration: {activity.duration}</Text>
-
-          <Pressable
-            style={styles.button}
-            onPress={() =>
-  router.push({
-    pathname: '/rating',
-    params: { activity: activity.name },
-  })
-}
-          >
-            <Text style={styles.buttonText}>Rate This Activity</Text>
-          </Pressable>
-        </View>
-      ))}
-    </ScrollView>
+        {activities.map((activity) => (
+          <Card key={activity.id} style={styles.card}>
+            <Card.Content>
+              <Text variant="labelLarge" style={styles.category}>{activity.category}</Text>
+              <Text variant="titleLarge" style={styles.activityName}>{activity.name}</Text>
+              <Text variant="bodyMedium">{activity.description}</Text>
+              <Text variant="bodyMedium">Difficulty: {activity.difficulty}</Text>
+              <Text variant="bodyMedium">Duration: {activity.duration}</Text>
+            </Card.Content>
+            <Card.Actions>
+              <Button
+                mode="contained"
+                onPress={() =>
+                  router.push({
+                    pathname: '/rating',
+                    params: { activity: activity.name },
+                  })
+                }
+              >
+                Rate This Activity
+              </Button>
+            </Card.Actions>
+          </Card>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+  },
   container: {
     padding: 20,
-    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
     marginBottom: 20,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#f3f4f6',
-    padding: 15,
-    borderRadius: 10,
     marginBottom: 15,
   },
   category: {
-    fontSize: 14,
-    fontWeight: 'bold',
     marginBottom: 6,
   },
   activityName: {
-    fontSize: 22,
-    fontWeight: 'bold',
     marginBottom: 8,
-  },
-  detail: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  button: {
-    backgroundColor: '#16a34a',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginTop: 10,
-    alignSelf: 'flex-start',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
 });

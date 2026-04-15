@@ -1,11 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LeaderboardScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Leaderboard Page</Text>
-      <Text style={styles.text}>Rankings will appear here.</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <Text variant="headlineLarge" style={styles.title}>Leaderboard Page</Text>
+      <Text variant="bodyLarge">Rankings will appear here.</Text>
+    </SafeAreaView>
   );
 }
 
@@ -14,15 +16,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
     marginBottom: 10,
-  },
-  text: {
-    fontSize: 18,
   },
 });

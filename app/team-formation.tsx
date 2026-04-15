@@ -1,11 +1,16 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useAppTheme } from '@/constants/ContextTheme';
+import { StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TeamFormationScreen() {
+  const { theme } = useAppTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Team Formation Page</Text>
-      <Text style={styles.text}>Students can create or join a team here.</Text>
-    </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Text variant="headlineLarge" style={styles.title}>Team Formation Page</Text>
+      <Text variant="bodyLarge" style={styles.text}>Students can create or join a team here.</Text>
+    </SafeAreaView>
   );
 }
 
@@ -14,16 +19,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
     marginBottom: 10,
   },
   text: {
-    fontSize: 18,
     textAlign: 'center',
   },
 });
