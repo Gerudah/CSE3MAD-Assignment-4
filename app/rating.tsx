@@ -1,10 +1,13 @@
+import { useAppTheme } from '@/constants/ContextTheme';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Divider, Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RatingScreen() {
   const { activity } = useLocalSearchParams();
-
+  const { theme } = useAppTheme();
   const [rating, setRating] = useState(0);
   const [submittedMessage, setSubmittedMessage] = useState('');
   const [savedRatings, setSavedRatings] = useState<
@@ -16,83 +19,72 @@ export default function RatingScreen() {
       setSubmittedMessage('Please choose a rating first.');
       return;
     }
-
     const activityName = activity ? String(activity) : 'Unknown Activity';
-
-    setSavedRatings([
-      ...savedRatings,
-      { activity: activityName, rating: rating },
-    ]);
-
+    setSavedRatings([...savedRatings, { activity: activityName, rating }]);
     setSubmittedMessage(`Rating submitted for ${activityName}: ${rating}/5`);
     setRating(0);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Rating Page</Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text variant="headlineLarge" style={styles.title}>Rating Page</Text>
 
-      {/* Activity Name */}
-      <Text style={styles.text}>
-        Activity: {activity || 'Unknown Activity'}
-      </Text>
+        <Text variant="bodyLarge" style={styles.text}>
+          Activity: {activity || 'Unknown Activity'}
+        </Text>
+        <Text variant="bodyLarge" style={styles.text}>Rate this activity:</Text>
 
-      <Text style={styles.text}>Rate this activity:</Text>
+        <View style={styles.starRow}>
+          {[1, 2, 3, 4, 5].map((num) => (
+            <Pressable key={num} onPress={() => setRating(num)}>
+              <Text style={[styles.star, { color: theme.colors.primary }]}>{rating >= num ? '★' : '☆'}</Text>
+            </Pressable>
+          ))}
+        </View>
 
-      {/* Stars */}
-      <View style={styles.starRow}>
-        {[1, 2, 3, 4, 5].map((num) => (
-          <Pressable key={num} onPress={() => setRating(num)}>
-            <Text style={styles.star}>
-              {rating >= num ? '★' : '☆'}
+        <Text variant="titleMedium" style={styles.result}>
+          Current rating: {rating} / 5
+        </Text>
+
+        <Button mode="contained" onPress={handleSubmit} style={styles.button}>
+          Submit Rating
+        </Button>
+
+        {submittedMessage !== '' && (
+          <Text variant="bodyLarge" style={styles.message}>{submittedMessage}</Text>
+        )}
+
+        <Divider style={styles.divider} />
+
+        <Text variant="titleLarge" style={styles.savedTitle}>Saved Ratings</Text>
+
+        {savedRatings.length === 0 ? (
+          <Text variant="bodyMedium">No ratings submitted yet.</Text>
+        ) : (
+          savedRatings.map((item, index) => (
+            <Text key={index} variant="bodyMedium" style={styles.savedText}>
+              {item.activity}: {item.rating}/5
             </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.result}>Current rating: {rating} / 5</Text>
-
-      {/* Submit Button */}
-      <Pressable style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Submit Rating</Text>
-      </Pressable>
-
-      {/* Message */}
-      {submittedMessage !== '' && (
-        <Text style={styles.message}>{submittedMessage}</Text>
-      )}
-
-      {/* Saved Ratings */}
-      <Text style={styles.savedTitle}>Saved Ratings</Text>
-
-      {savedRatings.length === 0 ? (
-        <Text style={styles.savedText}>No ratings submitted yet.</Text>
-      ) : (
-        savedRatings.map((item, index) => (
-          <Text key={index} style={styles.savedText}>
-            {item.activity}: {item.rating}/5
-          </Text>
-        ))
-      )}
-    </View>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+  },
+  container: {
     padding: 20,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
     marginBottom: 10,
   },
   text: {
-    fontSize: 18,
     marginBottom: 10,
   },
   starRow: {
@@ -104,31 +96,23 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   result: {
-    fontSize: 20,
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
     marginBottom: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    width: '100%',
   },
   message: {
-    fontSize: 18,
     marginBottom: 20,
   },
+  divider: {
+    width: '100%',
+    marginBottom: 16,
+  },
   savedTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
     marginBottom: 10,
   },
   savedText: {
-    fontSize: 18,
     marginBottom: 5,
   },
 });
