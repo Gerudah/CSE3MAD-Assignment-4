@@ -1,4 +1,5 @@
 import { getDb } from './database';
+import { randomUUID } from './uuid';
 import type { Session } from './types';
 
 export async function create(
@@ -8,7 +9,7 @@ export async function create(
   gpsLongitude?: number
 ): Promise<string> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   await db.runAsync(
     'INSERT INTO sessions (id, team_id, activity_id, started_at, gps_latitude, gps_longitude) VALUES (?, ?, ?, ?, ?, ?)',
     [id, teamId, activityId, Date.now(), gpsLatitude ?? null, gpsLongitude ?? null]

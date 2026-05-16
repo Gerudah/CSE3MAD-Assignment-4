@@ -79,17 +79,26 @@ export default function ActivityScreen() {
               <Text variant="bodyMedium">Duration: {activity.duration}</Text>
             </Card.Content>
             <Card.Actions>
-              <Button
-                mode="contained"
-                onPress={() =>
-                  router.push({
-                    pathname: '/rating',
-                    params: { activity: activity.name },
-                  })
-                }
-              >
-                Rate This Activity
-              </Button>
+              {activity.id === 1 ? (
+                <Button
+                  mode="contained"
+                  onPress={() => router.push('/activity/parachute')}
+                >
+                  Start Activity
+                </Button>
+              ) : (
+                <Button
+                  mode="outlined"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/rating',
+                      params: { activity: activity.name },
+                    })
+                  }
+                >
+                  Rate This Activity
+                </Button>
+              )}
             </Card.Actions>
           </Card>
         ))}

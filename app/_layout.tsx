@@ -18,8 +18,9 @@ function RootStack() {
       >
         <Stack.Screen name="login" options={{ title: 'Login' }} />
         <Stack.Screen name="team-formation" options={{ title: 'Team Formation' }} />
-        <Stack.Screen name="rating" options={{ title: 'Rating' }} />
+        <Stack.Screen name="rating" options={{ title: 'Rate Activity' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="activity" options={{ headerShown: false }} />
       </Stack>
     </>
   );
