@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function myTeamId() {
+      return get(/databases/$(database)/documents/students/$(request.auth.uid)).data.teamId;
+    }
+
+    // Admin-seeded collections — students read only, no app writes
+    match /activities/{id} {
+      allow read: if isAuth();
+    }
+
+    match /badges/{id} {
+      allow read: if isAuth();
+    }
+
+    // Any authenticated student can read teams and create new ones
+    // Only members of that team can update it
+    match /teams/{teamId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && myTeamId() == teamId;
+    }
+
+    // Students can read each other (needed for team member lists)
+    // Each student can only write their own profile doc
+    match /students/{uid} {
+      allow read: if isAuth();
+      allow write: if request.auth.uid == uid;
+    }
+
+    // Leaderboard is readable by all authenticated students
+    // Only the team the entry belongs to can write it
+    match /leaderboard_entries/{entryId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && myTeamId() == request.resource.data.teamId;
+    }
+
+    // Any authenticated student can read badge awards (needed for profile views)
+    // Students can only write their own awards
+    match /student_badges/{awardId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.resource.data.studentId == request.auth.uid;
+    }
+  }
+}
