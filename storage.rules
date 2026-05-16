@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Profile pictures — student can only write their own, any authenticated student can read
+    match /profile_pictures/{uid}/{file} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == uid;
+    }
+
+    // Leaderboard media — student can only write their own, any authenticated student can read
+    match /leaderboard_media/{uid}/{file} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == uid;
+    }
+  }
+}
