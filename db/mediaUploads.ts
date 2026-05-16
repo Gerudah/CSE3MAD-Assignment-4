@@ -1,4 +1,5 @@
 import { getDb } from './database';
+import { randomUUID } from './uuid';
 import type { MediaUpload } from './types';
 
 export async function add(
@@ -10,7 +11,7 @@ export async function add(
   durationSeconds?: number
 ): Promise<string> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   await db.runAsync(
     'INSERT INTO media_uploads (id, prototype_id, student_id, media_type, local_uri, capture_mode, duration_seconds, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [id, prototypeId, studentId, mediaType, localUri, captureMode ?? null, durationSeconds ?? null, Date.now()]

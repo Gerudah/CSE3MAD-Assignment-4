@@ -1,4 +1,5 @@
 import { getDb } from './database';
+import { randomUUID } from './uuid';
 import type { Measurement } from './types';
 
 export async function add(
@@ -9,7 +10,7 @@ export async function add(
   phase?: string
 ): Promise<string> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   await db.runAsync(
     'INSERT INTO measurements (id, prototype_id, metric_key, value, unit, phase, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     [id, prototypeId, metricKey, value, unit, phase ?? null, Date.now()]

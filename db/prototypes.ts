@@ -1,4 +1,5 @@
 import { getDb } from './database';
+import { randomUUID } from './uuid';
 import type { Prototype } from './types';
 
 export async function create(
@@ -7,7 +8,7 @@ export async function create(
   designDescription?: string
 ): Promise<string> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   await db.runAsync(
     'INSERT INTO prototypes (id, session_id, prototype_number, design_description, created_at) VALUES (?, ?, ?, ?, ?)',
     [id, sessionId, prototypeNumber, designDescription ?? null, Date.now()]
