@@ -1,4 +1,5 @@
 import { useAppTheme } from '@/constants/ContextTheme';
+import { sessionService } from '@/db';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -13,12 +14,13 @@ export default function HandFanSetupScreen() {
 
   const valid = teamName.trim().length > 0 && memberName.trim().length > 0;
 
-  function handleContinue() {
+  async function handleContinue() {
     if (!valid) return;
-
+    const sessionId = await sessionService.create(teamName.trim(), 'hand_fan');
     router.push({
       pathname: '/activity/hand-fan-test',
       params: {
+        sessionId,
         teamName: teamName.trim(),
         memberName: memberName.trim(),
       },

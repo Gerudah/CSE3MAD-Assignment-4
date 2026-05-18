@@ -1,8 +1,9 @@
+import { measurementService, prototypeService, sessionService } from '@/db';
+import { uploadBestScore } from '@/services/leaderboard';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
-import { Platform, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import {
     Button,
     Card,
@@ -12,7 +13,6 @@ import {
     TextInput,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth, db } from '../../firebaseConfig';
 
 const stiffnessValues = {
   Paper: 0.4,
@@ -20,7 +20,8 @@ const stiffnessValues = {
 };
 
 export default function HandFanTestScreen() {
-  const { teamName, memberName } = useLocalSearchParams<{
+  const { sessionId, teamName, memberName } = useLocalSearchParams<{
+    sessionId: string;
     teamName: string;
     memberName: string;
   }>();
@@ -36,60 +37,26 @@ export default function HandFanTestScreen() {
   const calculateForce = () => {
     const theta = Number(bendAngle);
     const k = stiffnessValues[material];
-
     return Number((k * theta).toFixed(2));
   };
 
-  const saveToSQLite = async (
+  const saveToDb = async (
     design: string,
     dist: string,
+    mat: string,
     angle: number,
     force: number,
     latitude: number | null,
-    longitude: number | null
+    longitude: number | null,
+    trialNumber: number
   ) => {
-    if (Platform.OS === 'web') return;
-
-    const SQLite = await import('expo-sqlite');
-    const localDb = await SQLite.openDatabaseAsync('labrats.db');
-
-    await localDb.execAsync(`
-      CREATE TABLE IF NOT EXISTS hand_fan_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        team_name TEXT,
-        member_name TEXT,
-        design_name TEXT,
-        distance TEXT,
-        material TEXT,
-        bend_angle REAL,
-        estimated_force REAL,
-        latitude REAL,
-        longitude REAL,
-        reflection TEXT,
-        created_at INTEGER
-      );
-    `);
-
-    await localDb.runAsync(
-      `INSERT INTO hand_fan_results
-      (team_name, member_name, design_name, distance, material,
-       bend_angle, estimated_force, latitude, longitude,
-       reflection, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        String(teamName),
-        String(memberName),
-        design,
-        dist,
-        material,
-        angle,
-        force,
-        latitude,
-        longitude,
-        reflection,
-        Date.now(),
-      ]
-    );
+    const protoId = await prototypeService.create(sessionId, trialNumber, `${design} (${mat})`);
+    await measurementService.add(protoId, 'bend_angle_deg', angle, 'deg');
+    await measurementService.add(protoId, 'estimated_force_n', force, 'N');
+    await measurementService.add(protoId, 'distance_cm', Number(dist), 'cm');
+    if (latitude !== null && longitude !== null) {
+      await sessionService.updateLocation(sessionId, latitude, longitude);
+    }
   };
 
   const saveTrial = async () => {
@@ -97,20 +64,19 @@ export default function HandFanTestScreen() {
 
     const angle = Number(bendAngle);
     const estimatedForce = calculateForce();
+    const trialNumber = results.length + 1;
 
     let latitude = null;
     let longitude = null;
 
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
-
       if (permission.status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
-
         latitude = location.coords.latitude;
         longitude = location.coords.longitude;
       }
-    } catch (error) {
+    } catch {
       console.log('Location unavailable');
     }
 
@@ -125,39 +91,29 @@ export default function HandFanTestScreen() {
     };
 
     setResults([...results, result]);
-
-    try {
-      await addDoc(collection(db, 'handFanResults'), {
-        activity: 'Hand Fan Challenge',
-        teamName: String(teamName),
-        memberName: String(memberName),
-        designName,
-        distance,
-        material,
-        bendAngle: angle,
-        estimatedForce,
-        latitude,
-        longitude,
-        reflection,
-        userId: auth.currentUser?.uid || 'guest',
-        createdAt: serverTimestamp(),
-      });
-
-      await saveToSQLite(
-        designName,
-        distance,
-        angle,
-        estimatedForce,
-        latitude,
-        longitude
-      );
-    } catch (error) {
-      console.log('Save failed');
-    }
+    await saveToDb(designName, distance, material, angle, estimatedForce, latitude, longitude, trialNumber);
 
     setDesignName('');
     setBendAngle('');
   };
+
+  async function handleViewSummary() {
+    try {
+      await sessionService.complete(sessionId, reflection);
+      await uploadBestScore(sessionId);
+    } catch {
+      // non-fatal
+    }
+    router.push({
+      pathname: '/activity/hand-fan-summary',
+      params: {
+        teamName: String(teamName),
+        memberName: String(memberName),
+        totalTrials: String(results.length),
+        reflection,
+      },
+    });
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -274,17 +230,7 @@ export default function HandFanTestScreen() {
         <Button
           mode="contained"
           style={styles.button}
-          onPress={() =>
-            router.push({
-              pathname: '/activity/hand-fan-summary',
-              params: {
-                teamName: String(teamName),
-                memberName: String(memberName),
-                totalTrials: String(results.length),
-                reflection,
-              },
-            })
-          }
+          onPress={handleViewSummary}
         >
           View Summary
         </Button>

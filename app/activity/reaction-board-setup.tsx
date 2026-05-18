@@ -6,7 +6,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function BreathingPaceSetupScreen() {
+export default function ReactionBoardSetupScreen() {
   const { theme } = useAppTheme();
 
   const [teamName, setTeamName] = useState('');
@@ -16,9 +16,9 @@ export default function BreathingPaceSetupScreen() {
 
   async function handleContinue() {
     if (!valid) return;
-    const sessionId = await sessionService.create(teamName.trim(), 'breathing_pace');
+    const sessionId = await sessionService.create(teamName.trim(), 'reaction_board');
     router.push({
-      pathname: '/activity/breathing-pace-test',
+      pathname: '/activity/reaction-board-test',
       params: {
         sessionId,
         teamName: teamName.trim(),
@@ -35,7 +35,7 @@ export default function BreathingPaceSetupScreen() {
         </Text>
 
         <Text variant="bodyLarge" style={styles.subtitle}>
-          Enter team and member details before recording breathing data.
+          Enter your team and member details before completing the reaction tests.
         </Text>
 
         <View style={styles.field}>
@@ -44,11 +44,10 @@ export default function BreathingPaceSetupScreen() {
             mode="outlined"
             value={teamName}
             onChangeText={setTeamName}
-            placeholder="e.g. STEMM Squad"
+            placeholder="e.g. Lab Rats"
           />
-
           <HelperText type="info">
-            This will be saved with your breathing results.
+            This will be saved with your reaction results.
           </HelperText>
         </View>
 
@@ -60,25 +59,19 @@ export default function BreathingPaceSetupScreen() {
             onChangeText={setMemberName}
             placeholder="e.g. Josh"
           />
-
           <HelperText type="info">
-            Each member should complete all three breathing conditions.
+            Each team member should complete the tests separately.
           </HelperText>
         </View>
 
         <Text
           variant="bodyMedium"
-          style={[
-            styles.note,
-            {
-              backgroundColor: theme.colors.surfaceVariant,
-            },
-          ]}
+          style={[styles.note, { backgroundColor: theme.colors.surfaceVariant }]}
         >
-          You will complete three breathing conditions:{'\n'}
-          {'  '}1. Resting breathing{'\n'}
-          {'  '}2. After 1 minute jogging{'\n'}
-          {'  '}3. After 100 star jumps
+          You will complete three phases:{'\n'}
+          {'  '}1. Dominant hand reaction test{'\n'}
+          {'  '}2. Non-dominant hand reaction test{'\n'}
+          {'  '}3. Tracing accuracy challenge
         </Text>
 
         <Button
@@ -89,7 +82,7 @@ export default function BreathingPaceSetupScreen() {
           contentStyle={styles.buttonContent}
           icon="arrow-right"
         >
-          Start Activity
+          Start Tests
         </Button>
       </ScrollView>
     </SafeAreaView>
