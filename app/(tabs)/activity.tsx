@@ -69,48 +69,63 @@ export default function ActivityScreen() {
         <Text variant="headlineLarge" style={styles.title}>Activity Page</Text>
         <Text variant="bodyLarge" style={styles.subtitle}>Choose a STEMM activity below.</Text>
 
-        {activities.map((activity) => (
-          <Card key={activity.id} style={styles.card}>
-            <Card.Content>
-              <Text variant="labelLarge" style={styles.category}>{activity.category}</Text>
-              <Text variant="titleLarge" style={styles.activityName}>{activity.name}</Text>
-              <Text variant="bodyMedium">{activity.description}</Text>
-              <Text variant="bodyMedium">Difficulty: {activity.difficulty}</Text>
-              <Text variant="bodyMedium">Duration: {activity.duration}</Text>
-            </Card.Content>
-            <Card.Actions>
-              {activity.id === 1 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/parachute')}>
-                  Start Activity
-                </Button>
-              ) : activity.id === 3 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/hand-fan')}>
-                  Start Activity
-                </Button>
-              ) : activity.id === 6 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/reaction-board')}>
-                  Start Activity
-                </Button>
-              ) : activity.id === 7 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/breathing-pace')}>
-                  Start Activity
-                </Button>
-              ) : (
-                <Button
-                  mode="outlined"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/rating',
-                      params: { activity: activity.name },
-                    })
-                  }
-                >
-                  Rate This Activity
-                </Button>
-              )}
-            </Card.Actions>
-          </Card>
-        ))}
+{activities.map((activity) => (
+  <Card key={activity.id} style={styles.card}>
+    <Card.Content>
+      <Text variant="labelLarge" style={styles.category}>
+        {activity.category}
+      </Text>
+
+      <Text variant="titleLarge" style={styles.activityName}>
+        {activity.name}
+      </Text>
+
+      <Text variant="bodyMedium">{activity.description}</Text>
+      <Text variant="bodyMedium">
+        Difficulty: {activity.difficulty}
+      </Text>
+      <Text variant="bodyMedium">
+        Duration: {activity.duration}
+      </Text>
+    </Card.Content>
+
+    <Card.Actions>
+      {activity.id === 1 ? (
+        <Button mode="contained" onPress={() => router.push('/activity/parachute')}>
+          Start Activity
+        </Button>
+      ) : activity.id === 3 ? (
+        <Button mode="contained" onPress={() => router.push('/activity/hand-fan')}>
+          Start Activity
+        </Button>
+      ) : activity.id === 4 ? (
+        <Button mode="contained" onPress={() => router.push('/activity/earthquake')}>
+          Start Activity
+        </Button>
+      ) : activity.id === 6 ? (
+        <Button mode="contained" onPress={() => router.push('/activity/reaction-board')}>
+          Start Activity
+        </Button>
+      ) : activity.id === 7 ? (
+        <Button mode="contained" onPress={() => router.push('/activity/breathing-pace')}>
+          Start Activity
+        </Button>
+      ) : (
+        <Button
+          mode="outlined"
+          onPress={() =>
+            router.push({
+              pathname: '/rating',
+              params: { activity: activity.name },
+            })
+          }
+        >
+          Rate This Activity
+        </Button>
+      )}
+    </Card.Actions>
+  </Card>
+))}
       </ScrollView>
     </SafeAreaView>
   );

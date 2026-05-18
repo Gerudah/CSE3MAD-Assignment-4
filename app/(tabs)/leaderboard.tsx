@@ -1,3 +1,4 @@
+import AdBanner from '@/components/AdBanner.web';
 import { useAppTheme } from '@/constants/ContextTheme';
 import { getDb } from '@/db';
 import { db as firestoreDb } from '@/firebaseConfig';
@@ -5,7 +6,13 @@ import { useFocusEffect } from 'expo-router';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useCallback, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Chip, Divider, Surface, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Chip,
+  Divider,
+  Surface,
+  Text,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type FirestoreEntry = {
@@ -268,6 +275,7 @@ export default function LeaderboardScreen() {
           )}
         </Surface>
       )}
+      <AdBanner />
     </SafeAreaView>
   );
 }
