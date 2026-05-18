@@ -1024,17 +1024,17 @@
     resolve-from "^5.0.0"
     semver "^7.6.0"
 
-"@expo/image-utils@^0.8.8":
-  version "0.8.12"
-  resolved "https://registry.npmjs.org/@expo/image-utils/-/image-utils-0.8.12.tgz"
-  integrity sha512-3KguH7kyKqq7pNwLb9j6BBdD/bjmNwXZG/HPWT6GWIXbwrvAJt2JNyYTP5agWJ8jbbuys1yuCzmkX+TU6rmI7A==
+"@expo/image-utils@^0.8.14", "@expo/image-utils@^0.8.8":
+  version "0.8.14"
+  resolved "https://registry.npmjs.org/@expo/image-utils/-/image-utils-0.8.14.tgz"
+  integrity sha512-5Sn+jG4Cw+shC2wDMXoqSAJnvERbiwzHn05FpWtD5IBflfTIs5gUmjzwiGVyjOdlMSQhgRrw/AymPbmO9h9mpQ==
   dependencies:
+    "@expo/require-utils" "^55.0.5"
     "@expo/spawn-async" "^1.7.2"
     chalk "^4.0.0"
     getenv "^2.0.0"
     jimp-compact "0.16.1"
     parse-png "^2.1.0"
-    resolve-from "^5.0.0"
     semver "^7.6.0"
 
 "@expo/json-file@^10.0.12", "@expo/json-file@^10.0.8", "@expo/json-file@~10.0.8":
@@ -1145,6 +1145,15 @@
     resolve-from "^5.0.0"
     semver "^7.6.0"
     xml2js "0.6.0"
+
+"@expo/require-utils@^55.0.5":
+  version "55.0.5"
+  resolved "https://registry.npmjs.org/@expo/require-utils/-/require-utils-55.0.5.tgz"
+  integrity sha512-U4K/CQ2VpXuwfNGsN+daKmYOt15hCP8v/pXaYH6eut7kdYZo6SfJ1yr67BIcJ+1Gzzs+QzTxswAZChKpXmceyw==
+  dependencies:
+    "@babel/code-frame" "^7.20.0"
+    "@babel/core" "^7.25.2"
+    "@babel/plugin-transform-modules-commonjs" "^7.24.8"
 
 "@expo/schema-utils@^0.1.8":
   version "0.1.8"
@@ -3933,6 +3942,13 @@ expo-linking@^8.0.11, expo-linking@~8.0.11:
     expo-constants "~18.0.12"
     invariant "^2.2.4"
 
+expo-location@^55.1.10:
+  version "55.1.10"
+  resolved "https://registry.npmjs.org/expo-location/-/expo-location-55.1.10.tgz"
+  integrity sha512-MkcFucsZ567Bn8ChElVTYVbOs2QXn27IKaBrVKogw7ZcbooImdj3L/UR6E7s3LkgF33YubKynAp9Opvixdwl7g==
+  dependencies:
+    "@expo/image-utils" "^0.8.14"
+
 expo-manifests@~1.0.11:
   version "1.0.11"
   resolved "https://registry.npmjs.org/expo-manifests/-/expo-manifests-1.0.11.tgz"
@@ -3987,6 +4003,13 @@ expo-router@*, expo-router@~6.0.23:
     shallowequal "^1.1.0"
     use-latest-callback "^0.2.1"
     vaul "^1.1.2"
+
+expo-sensors@^55.0.15:
+  version "55.0.15"
+  resolved "https://registry.npmjs.org/expo-sensors/-/expo-sensors-55.0.15.tgz"
+  integrity sha512-kQ4JsgnkM4niP5IHzC8cqs94Lngp9SIuKbaFI2rauXiON8iGndodUAl/Pccpe8W1UHS4NQu6kcrAOi0rpIiowg==
+  dependencies:
+    invariant "^2.2.4"
 
 expo-server@^1.0.5:
   version "1.0.5"
@@ -7059,7 +7082,7 @@ typed-array-length@^1.0.7:
     possible-typed-array-names "^1.0.0"
     reflect.getprototypeof "^1.0.6"
 
-typescript@>=4.8.4, "typescript@>=4.8.4 <6.1.0", typescript@~5.9.2:
+"typescript@^5.0.0 || ^5.0.0-0", typescript@>=4.8.4, "typescript@>=4.8.4 <6.1.0", typescript@~5.9.2:
   version "5.9.3"
   resolved "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"
   integrity sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==
