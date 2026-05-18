@@ -80,10 +80,19 @@ export default function ActivityScreen() {
             </Card.Content>
             <Card.Actions>
               {activity.id === 1 ? (
-                <Button
-                  mode="contained"
-                  onPress={() => router.push('/activity/parachute')}
-                >
+                <Button mode="contained" onPress={() => router.push('/activity/parachute')}>
+                  Start Activity
+                </Button>
+              ) : activity.id === 3 ? (
+                <Button mode="contained" onPress={() => router.push('/activity/hand-fan')}>
+                  Start Activity
+                </Button>
+              ) : activity.id === 6 ? (
+                <Button mode="contained" onPress={() => router.push('/activity/reaction-board')}>
+                  Start Activity
+                </Button>
+              ) : activity.id === 7 ? (
+                <Button mode="contained" onPress={() => router.push('/activity/breathing-pace')}>
                   Start Activity
                 </Button>
               ) : (
