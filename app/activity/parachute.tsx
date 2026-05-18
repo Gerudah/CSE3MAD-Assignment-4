@@ -1,3 +1,4 @@
+import { useAuth } from '@/constants/AuthContext';
 import { useAppTheme } from '@/constants/ContextTheme';
 import { sessionService } from '@/db';
 import { router } from 'expo-router';
@@ -6,7 +7,6 @@ import { Button, Chip, Divider, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ACTIVITY_ID = 'parachute_drop';
-const TEAM_ID = 'demo-team'; // TODO: replace with real team from team formation
 
 const EQUIPMENT = [
   'Small toy (e.g. army soldier figurine)',
@@ -26,9 +26,10 @@ const INSTRUCTIONS = [
 
 export default function ParachuteIntroScreen() {
   const { theme } = useAppTheme();
+  const { teamId } = useAuth();
 
   async function handleStart() {
-    const sessionId = await sessionService.create(TEAM_ID, ACTIVITY_ID);
+    const sessionId = await sessionService.create(teamId ?? 'unknown', ACTIVITY_ID);
     router.push({ pathname: '/activity/parachute-setup', params: { sessionId } });
   }
 

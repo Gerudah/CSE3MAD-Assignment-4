@@ -43,7 +43,8 @@ export default function LoginScreen() {
       }
       // AuthGuard in _layout.tsx handles navigation after auth state updates
     } catch (e: any) {
-      setError(friendlyError(e.code));
+      console.error('[Auth error]', e?.code, e?.message);
+      setError(friendlyError(e?.code ?? ''));
     } finally {
       setLoading(false);
     }
@@ -167,6 +168,7 @@ function friendlyError(code: string): string {
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
+    case 'auth/INVALID_LOGIN_CREDENTIALS':
       return 'Incorrect email or password.';
     case 'auth/email-already-in-use':
       return 'An account with this email already exists.';
@@ -174,8 +176,12 @@ function friendlyError(code: string): string {
       return 'Too many attempts. Please try again later.';
     case 'auth/network-request-failed':
       return 'Network error. Check your connection.';
+    case 'auth/operation-not-allowed':
+      return 'Email/password sign-in is not enabled. Check Firebase Console.';
+    case 'auth/weak-password':
+      return 'Password must be at least 6 characters.';
     default:
-      return 'Something went wrong. Please try again.';
+      return `Error (${code ?? 'unknown'}). Check your connection and try again.`;
   }
 }
 
