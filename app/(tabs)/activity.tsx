@@ -1,3 +1,4 @@
+import { useAuth } from '@/constants/AuthContext';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
@@ -63,6 +64,16 @@ const activities = [
 ];
 
 export default function ActivityScreen() {
+  const { teamId } = useAuth();
+
+  function startActivity(path: string) {
+    if (!teamId) {
+      router.push('/team-formation');
+      return;
+    }
+    router.push(path as any);
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -80,19 +91,19 @@ export default function ActivityScreen() {
             </Card.Content>
             <Card.Actions>
               {activity.id === 1 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/parachute')}>
+                <Button mode="contained" onPress={() => startActivity('/activity/parachute')}>
                   Start Activity
                 </Button>
               ) : activity.id === 3 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/hand-fan')}>
+                <Button mode="contained" onPress={() => startActivity('/activity/hand-fan')}>
                   Start Activity
                 </Button>
               ) : activity.id === 6 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/reaction-board')}>
+                <Button mode="contained" onPress={() => startActivity('/activity/reaction-board')}>
                   Start Activity
                 </Button>
               ) : activity.id === 7 ? (
-                <Button mode="contained" onPress={() => router.push('/activity/breathing-pace')}>
+                <Button mode="contained" onPress={() => startActivity('/activity/breathing-pace')}>
                   Start Activity
                 </Button>
               ) : (
