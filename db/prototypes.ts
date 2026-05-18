@@ -1,6 +1,6 @@
 import { getDb } from './database';
-import { randomUUID } from './uuid';
 import type { Prototype } from './types';
+import { randomUUID } from './uuid';
 
 export async function create(
   sessionId: string,
