@@ -2,7 +2,41 @@ import { AuthProvider, useAuth } from '@/constants/AuthContext';
 import { ThemeProvider, useAppTheme } from '@/constants/ContextTheme';
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
+
+function AuthLoadingOverlay() {
+  const { theme } = useAppTheme();
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.3, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [pulse]);
+
+  return (
+    <View style={[styles.overlay, { backgroundColor: theme.colors.background }]}>
+      <Animated.Text
+        style={[styles.appName, { opacity: pulse, color: theme.colors.primary }]}
+      >
+        LabRats
+      </Animated.Text>
+      <Text variant="bodyMedium" style={[styles.tagline, { color: theme.colors.onSurfaceVariant }]}>
+        STEMM Activity Explorer
+      </Text>
+      <ActivityIndicator
+        size="large"
+        color={theme.colors.primary}
+        style={styles.spinner}
+      />
+    </View>
+  );
+}
 
 function AuthGuard() {
   const { user, teamId, loading } = useAuth();
@@ -28,6 +62,7 @@ function AuthGuard() {
 
 function RootStack() {
   const { theme, isDark } = useAppTheme();
+  const { loading } = useAuth();
 
   return (
     <>
@@ -47,6 +82,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="activity" options={{ headerShown: false }} />
       </Stack>
+      {loading && <AuthLoadingOverlay />}
     </>
   );
 }
@@ -60,3 +96,22 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  appName: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  tagline: {
+    marginBottom: 48,
+  },
+  spinner: {},
+});
