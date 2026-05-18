@@ -1,5 +1,6 @@
 import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService } from '@/db';
+import { uploadBestScore } from '@/services/leaderboard';
 import type { Prototype } from '@/db';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -71,6 +72,7 @@ export default function ParachuteSummaryScreen() {
       );
       setResults(protoResults);
       setLoading(false);
+      uploadBestScore(sessionId).catch(() => {});
     }
     if (sessionId) load();
   }, [sessionId]);

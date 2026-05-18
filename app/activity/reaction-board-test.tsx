@@ -1,9 +1,9 @@
+import { measurementService, prototypeService } from '@/db';
+import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   GestureResponderEvent,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth, db } from '../../firebaseConfig';
 
 type GameState = 'ready' | 'waiting' | 'tap' | 'result';
 type Phase = 'dominant' | 'nonDominant' | 'tracing';
@@ -19,8 +18,15 @@ type Phase = 'dominant' | 'nonDominant' | 'tracing';
 const BOARD_SIZE = 260;
 const TARGET_SIZE = 70;
 
+const PHASE_PROTO_NUM: Record<string, number> = {
+  'Dominant Hand': 1,
+  'Non-Dominant Hand': 2,
+  'Tracing Challenge': 3,
+};
+
 export default function ReactionBoardScreen() {
-  const { teamName, memberName } = useLocalSearchParams<{
+  const { sessionId, teamName, memberName } = useLocalSearchParams<{
+    sessionId: string;
     teamName: string;
     memberName: string;
   }>();
@@ -30,7 +36,7 @@ export default function ReactionBoardScreen() {
 
   const [gameState, setGameState] = useState<GameState>('ready');
   const [phase, setPhase] = useState<Phase>('dominant');
-  const [startTime, setStartTime] = useState(0);
+  const startTimeRef = useRef(0);
   const [reactionTime, setReactionTime] = useState<number | null>(null);
 
   const [dominantAttempts, setDominantAttempts] = useState<number[]>([]);
@@ -39,7 +45,7 @@ export default function ReactionBoardScreen() {
   const [tracingStarted, setTracingStarted] = useState(false);
   const [targetX, setTargetX] = useState(100);
   const [targetY, setTargetY] = useState(100);
-  const [targetStartTime, setTargetStartTime] = useState(0);
+  const targetStartTimeRef = useRef(0);
   const [tracingAttempts, setTracingAttempts] = useState(0);
   const [tracingHits, setTracingHits] = useState(0);
   const [tracingDelays, setTracingDelays] = useState<number[]>([]);
@@ -47,21 +53,33 @@ export default function ReactionBoardScreen() {
   const [message, setMessage] = useState('Choose a phase, then start the test.');
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks created prototype IDs per phase label to avoid duplicates
+  const phaseProtoRef = useRef<Record<string, string>>({});
+
+  // Capture start time after the "TAP NOW!" render, not inside the timeout
+  useEffect(() => {
+    if (gameState === 'tap') {
+      startTimeRef.current = Date.now();
+    }
+  }, [gameState]);
+
+  // Capture target start time after the target position re-renders
+  useEffect(() => {
+    if (tracingStarted) {
+      targetStartTimeRef.current = Date.now();
+    }
+  }, [targetX, targetY]);
 
   const calculateAverage = (attempts: number[]) => {
     if (attempts.length === 0) return null;
-    return Math.round(attempts.reduce((total, value) => total + value, 0) / attempts.length);
+    return Math.round(attempts.reduce((t, v) => t + v, 0) / attempts.length);
   };
 
-  const calculateBest = (attempts: number[]) => {
-    if (attempts.length === 0) return null;
-    return Math.min(...attempts);
-  };
+  const calculateBest = (attempts: number[]) =>
+    attempts.length === 0 ? null : Math.min(...attempts);
 
-  const calculateWorst = (attempts: number[]) => {
-    if (attempts.length === 0) return null;
-    return Math.max(...attempts);
-  };
+  const calculateWorst = (attempts: number[]) =>
+    attempts.length === 0 ? null : Math.max(...attempts);
 
   const dominantAverage = calculateAverage(dominantAttempts);
   const nonDominantAverage = calculateAverage(nonDominantAttempts);
@@ -69,58 +87,24 @@ export default function ReactionBoardScreen() {
   const tracingAccuracy =
     tracingAttempts > 0 ? Math.round((tracingHits / tracingAttempts) * 100) : null;
 
-  const saveToSQLite = async (
+  const saveToDb = async (
     phaseName: string,
     value: number,
-    unit: string,
     accuracy?: number | null
   ) => {
-    if (Platform.OS === 'web') {
-      return;
-    }
-
-    const SQLite = await import('expo-sqlite');
-    const localDb = await SQLite.openDatabaseAsync('labrats.db');
-
-    await localDb.execAsync(`
-      CREATE TABLE IF NOT EXISTS reaction_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        team_name TEXT,
-        member_name TEXT,
-        phase TEXT,
-        value REAL,
-        unit TEXT,
-        accuracy REAL,
-        created_at INTEGER
+    let protoId = phaseProtoRef.current[phaseName];
+    if (!protoId) {
+      protoId = await prototypeService.create(
+        sessionId,
+        PHASE_PROTO_NUM[phaseName] ?? 1,
+        phaseName
       );
-    `);
-
-    await localDb.runAsync(
-      `INSERT INTO reaction_results 
-       (team_name, member_name, phase, value, unit, accuracy, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [team, member, phaseName, value, unit, accuracy ?? null, Date.now()]
-    );
-  };
-
-  const saveToFirestore = async (
-    phaseName: string,
-    value: number,
-    unit: string,
-    accuracy?: number | null
-  ) => {
-    await addDoc(collection(db, 'reactionResults'), {
-      activity: 'Reaction Board Challenge',
-      teamName: team,
-      memberName: member,
-      phase: phaseName,
-      value,
-      unit,
-      accuracy: accuracy ?? null,
-      userId: auth.currentUser?.uid || 'guest',
-      userEmail: auth.currentUser?.email || 'guest',
-      createdAt: serverTimestamp(),
-    });
+      phaseProtoRef.current = { ...phaseProtoRef.current, [phaseName]: protoId };
+    }
+    await measurementService.add(protoId, 'reaction_time_ms', value, 'ms', phaseName);
+    if (accuracy != null) {
+      await measurementService.add(protoId, 'tracing_accuracy_pct', accuracy, '%', phaseName);
+    }
   };
 
   const saveResult = async (
@@ -129,21 +113,14 @@ export default function ReactionBoardScreen() {
     unit: string,
     accuracy?: number | null
   ) => {
-    try {
-      await saveToFirestore(phaseName, value, unit, accuracy);
-      await saveToSQLite(phaseName, value, unit, accuracy);
-      setMessage(`${phaseName} result saved: ${value} ${unit}`);
-    } catch (error: any) {
-      setMessage(`Result recorded locally, but save failed: ${error.message}`);
-    }
+    await saveToDb(phaseName, value, accuracy);
+    setMessage(`${phaseName} result saved: ${value} ${unit}`);
   };
 
   const changePhase = (newPhase: Phase) => {
     if (gameState === 'waiting' || gameState === 'tap') return;
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     setPhase(newPhase);
     setGameState('ready');
@@ -165,9 +142,7 @@ export default function ReactionBoardScreen() {
     setMessage('Wait for it...');
 
     const randomDelay = Math.floor(Math.random() * 3000) + 2000;
-
     timeoutRef.current = setTimeout(() => {
-      setStartTime(Date.now());
       setGameState('tap');
       setMessage('TAP NOW!');
     }, randomDelay);
@@ -175,17 +150,14 @@ export default function ReactionBoardScreen() {
 
   const handleReactionTap = async () => {
     if (gameState === 'waiting') {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setGameState('ready');
       setMessage('Too early! Press start and try again.');
       return;
     }
 
     if (gameState === 'tap') {
-      const result = Date.now() - startTime;
+      const result = Date.now() - startTimeRef.current;
       setReactionTime(result);
 
       if (phase === 'dominant') {
@@ -204,7 +176,6 @@ export default function ReactionBoardScreen() {
     const maxPosition = BOARD_SIZE - TARGET_SIZE;
     setTargetX(Math.floor(Math.random() * maxPosition));
     setTargetY(Math.floor(Math.random() * maxPosition));
-    setTargetStartTime(Date.now());
   };
 
   const startTracing = () => {
@@ -219,12 +190,16 @@ export default function ReactionBoardScreen() {
   const handleBoardPress = async (event: GestureResponderEvent) => {
     if (!tracingStarted || phase !== 'tracing') return;
 
-    const delay = Date.now() - targetStartTime;
-    const hit = true;
+    const { locationX, locationY } = event.nativeEvent;
+    const centerX = targetX + TARGET_SIZE / 2;
+    const centerY = targetY + TARGET_SIZE / 2;
+    const distance = Math.sqrt((locationX - centerX) ** 2 + (locationY - centerY) ** 2);
+    const hit = distance <= TARGET_SIZE / 2;
 
+    const delay = Date.now() - targetStartTimeRef.current;
     const newAttempts = tracingAttempts + 1;
     const newHits = hit ? tracingHits + 1 : tracingHits;
-    const newDelays = [...tracingDelays, delay];
+    const newDelays = hit ? [...tracingDelays, delay] : tracingDelays;
     const newAccuracy = Math.round((newHits / newAttempts) * 100);
 
     setTracingAttempts(newAttempts);
@@ -239,26 +214,23 @@ export default function ReactionBoardScreen() {
       return;
     }
 
-    setMessage(`Hit! Delay: ${delay} ms`);
+    setMessage(hit ? `Hit! Delay: ${delay} ms` : 'Missed! Try again.');
     moveTarget();
   };
 
   const resetAttempts = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     setDominantAttempts([]);
     setNonDominantAttempts([]);
     setReactionTime(null);
     setGameState('ready');
     setPhase('dominant');
-
     setTracingStarted(false);
     setTracingAttempts(0);
     setTracingHits(0);
     setTracingDelays([]);
-
+    phaseProtoRef.current = {};
     setMessage('Choose a phase, then start the test.');
   };
 
@@ -371,16 +343,15 @@ export default function ReactionBoardScreen() {
             <Text variant="titleMedium" style={styles.sectionTitle}>Tracing Challenge</Text>
             <Text>Attempts: {tracingAttempts}</Text>
             <Text>Accuracy: {tracingAccuracy !== null ? `${tracingAccuracy}%` : 'No data'}</Text>
-            <Text>
-              Average Delay: {tracingAverageDelay !== null ? `${tracingAverageDelay} ms` : 'No data'}
-            </Text>
+            <Text>Average Delay: {tracingAverageDelay !== null ? `${tracingAverageDelay} ms` : 'No data'}</Text>
           </Card.Content>
         </Card>
 
         <Button
           mode="contained"
           style={styles.button}
-          onPress={() =>
+          onPress={async () => {
+            try { await uploadBestScore(sessionId); } catch { /* non-fatal */ }
             router.push({
               pathname: '/activity/reaction-board-summary',
               params: {
@@ -399,8 +370,8 @@ export default function ReactionBoardScreen() {
                 tracingAccuracy: tracingAccuracy !== null ? String(tracingAccuracy) : '',
                 tracingAverageDelay: tracingAverageDelay !== null ? String(tracingAverageDelay) : '',
               },
-            })
-          }
+            });
+          }}
         >
           View Summary
         </Button>

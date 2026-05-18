@@ -1,22 +1,28 @@
+import { measurementService, prototypeService, sessionService } from '@/db';
+import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth, db } from '../../firebaseConfig';
 
 type Condition = 'Resting' | 'Jogging' | 'Star Jumps';
 
+const CONDITION_PROTO_NUM: Record<Condition, number> = {
+  'Resting': 1,
+  'Jogging': 2,
+  'Star Jumps': 3,
+};
+
 export default function BreathingPaceTestScreen() {
-  const { teamName, memberName } = useLocalSearchParams<{
+  const { sessionId, teamName, memberName } = useLocalSearchParams<{
+    sessionId: string;
     teamName: string;
     memberName: string;
   }>();
 
   const [condition, setCondition] = useState<Condition>('Resting');
-
   const [isRecording, setIsRecording] = useState(false);
   const [waveform, setWaveform] = useState<number[]>([]);
   const [breathingRate, setBreathingRate] = useState(0);
@@ -27,6 +33,9 @@ export default function BreathingPaceTestScreen() {
 
   const [reflection, setReflection] = useState('');
 
+  // Tracks created prototype IDs per condition to avoid duplicates
+  const conditionProtoRef = useRef<Partial<Record<Condition, string>>>({});
+
   useEffect(() => {
     let subscription: any;
 
@@ -34,69 +43,24 @@ export default function BreathingPaceTestScreen() {
       Accelerometer.setUpdateInterval(300);
 
       subscription = Accelerometer.addListener((data) => {
-        const magnitude =
-          Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
-
+        const magnitude = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
         const simulatedBreathing = Math.round(magnitude * 8 + 10);
 
         setBreathingRate(simulatedBreathing);
-
-        setWaveform((prev) => {
-          const updated = [...prev, simulatedBreathing];
-          return updated.slice(-20);
-        });
+        setWaveform((prev) => [...prev, simulatedBreathing].slice(-20));
       });
     }
 
-    return () => {
-      subscription?.remove();
-    };
+    return () => { subscription?.remove(); };
   }, [isRecording]);
 
-  const saveToSQLite = async (conditionName: string, bpm: number) => {
-    if (Platform.OS === 'web') return;
-
-    const SQLite = await import('expo-sqlite');
-    const localDb = await SQLite.openDatabaseAsync('labrats.db');
-
-    await localDb.execAsync(`
-      CREATE TABLE IF NOT EXISTS breathing_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        team_name TEXT,
-        member_name TEXT,
-        condition TEXT,
-        bpm REAL,
-        reflection TEXT,
-        created_at INTEGER
-      );
-    `);
-
-    await localDb.runAsync(
-      `INSERT INTO breathing_results
-      (team_name, member_name, condition, bpm, reflection, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        String(teamName),
-        String(memberName),
-        conditionName,
-        bpm,
-        reflection,
-        Date.now(),
-      ]
-    );
-  };
-
-  const saveToFirestore = async (conditionName: string, bpm: number) => {
-    await addDoc(collection(db, 'breathingResults'), {
-      activity: 'Breathing Pace Trainer',
-      teamName: String(teamName),
-      memberName: String(memberName),
-      condition: conditionName,
-      bpm,
-      reflection,
-      userId: auth.currentUser?.uid || 'guest',
-      createdAt: serverTimestamp(),
-    });
+  const saveToDb = async (cond: Condition, bpm: number) => {
+    let protoId = conditionProtoRef.current[cond];
+    if (!protoId) {
+      protoId = await prototypeService.create(sessionId, CONDITION_PROTO_NUM[cond], cond);
+      conditionProtoRef.current = { ...conditionProtoRef.current, [cond]: protoId };
+    }
+    await measurementService.add(protoId, 'breathing_rate_bpm', bpm, 'bpm', cond);
   };
 
   const stopRecording = async () => {
@@ -110,9 +74,28 @@ export default function BreathingPaceTestScreen() {
       setStarJumpRate(breathingRate);
     }
 
-    await saveToFirestore(condition, breathingRate);
-    await saveToSQLite(condition, breathingRate);
+    await saveToDb(condition, breathingRate);
   };
+
+  async function handleViewSummary() {
+    try {
+      await sessionService.complete(sessionId, reflection);
+      await uploadBestScore(sessionId);
+    } catch {
+      // non-fatal
+    }
+    router.push({
+      pathname: '/activity/breathing-pace-summary',
+      params: {
+        teamName: String(teamName || 'Unknown Team'),
+        memberName: String(memberName || 'Unknown Member'),
+        restingRate: restingRate !== null ? String(restingRate) : '',
+        joggingRate: joggingRate !== null ? String(joggingRate) : '',
+        starJumpRate: starJumpRate !== null ? String(starJumpRate) : '',
+        reflection,
+      },
+    });
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -139,12 +122,7 @@ export default function BreathingPaceTestScreen() {
               {waveform.map((value, index) => (
                 <View
                   key={index}
-                  style={[
-                    styles.waveBar,
-                    {
-                      height: value * 2,
-                    },
-                  ]}
+                  style={[styles.waveBar, { height: value * 2 }]}
                 />
               ))}
             </View>
@@ -207,73 +185,26 @@ export default function BreathingPaceTestScreen() {
             <Text>Star Jump BPM: {starJumpRate ?? 'No data'}</Text>
           </Card.Content>
         </Card>
-        <Button
-  mode="contained"
-  style={styles.button}
-  onPress={() =>
-    router.push({
-      pathname: '/activity/breathing-pace-summary',
-      params: {
-        teamName: String(teamName || 'Unknown Team'),
-        memberName: String(memberName || 'Unknown Member'),
-        restingRate: restingRate !== null ? String(restingRate) : '',
-        joggingRate: joggingRate !== null ? String(joggingRate) : '',
-        starJumpRate: starJumpRate !== null ? String(starJumpRate) : '',
-        reflection,
-      },
-    })
-  }
->
-  View Summary
-</Button>
+
+        <Button mode="contained" style={styles.button} onPress={handleViewSummary}>
+          View Summary
+        </Button>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  card: {
-    marginBottom: 20,
-  },
-  bpm: {
-    textAlign: 'center',
-    marginVertical: 20,
-  },
-  waveform: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 120,
-    marginTop: 10,
-  },
-  waveBar: {
-    width: 8,
-    marginHorizontal: 2,
-    backgroundColor: '#4CAF50',
-  },
-  conditionButtons: {
-    marginBottom: 20,
-  },
-  button: {
-    marginBottom: 10,
-  },
-  input: {
-    marginBottom: 20,
-  },
-  resultsTitle: {
-    marginBottom: 10,
-  },
+  safe: { flex: 1 },
+  container: { padding: 20 },
+  title: { textAlign: 'center', marginBottom: 10 },
+  subtitle: { textAlign: 'center', marginBottom: 20 },
+  card: { marginBottom: 20 },
+  bpm: { textAlign: 'center', marginVertical: 20 },
+  waveform: { flexDirection: 'row', alignItems: 'flex-end', height: 120, marginTop: 10 },
+  waveBar: { width: 8, marginHorizontal: 2, backgroundColor: '#4CAF50' },
+  conditionButtons: { marginBottom: 20 },
+  button: { marginBottom: 10 },
+  input: { marginBottom: 20 },
+  resultsTitle: { marginBottom: 10 },
 });
