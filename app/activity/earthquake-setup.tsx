@@ -1,30 +1,23 @@
+import { useAuth } from '@/constants/AuthContext';
 import { useAppTheme } from '@/constants/ContextTheme';
 import { sessionService } from '@/db';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EarthquakeSetupScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { theme } = useAppTheme();
-
-  const [teamName, setTeamName] = useState('');
-  const [memberName, setMemberName] = useState('');
+  const { teamName, memberName } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const valid = teamName.trim().length > 0 && memberName.trim().length > 0;
-
   async function handleContinue() {
-    if (!valid) return;
-
     setSaving(true);
-
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
-
       if (permission.status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
         await sessionService.updateLocation(
@@ -34,9 +27,8 @@ export default function EarthquakeSetupScreen() {
         );
       }
     } catch {
-      // GPS is helpful but should not block the activity.
+      // GPS is helpful but should not block the activity
     }
-
     setSaving(false);
 
     router.push({
@@ -44,8 +36,8 @@ export default function EarthquakeSetupScreen() {
       params: {
         sessionId,
         design: '1',
-        teamName: teamName.trim(),
-        memberName: memberName.trim(),
+        teamName: teamName ?? '',
+        memberName: memberName ?? '',
       },
     });
   }
@@ -58,32 +50,8 @@ export default function EarthquakeSetupScreen() {
         </Text>
 
         <Text variant="bodyLarge" style={styles.subtitle}>
-          Enter team details and prepare your structure testing area.
+          Prepare your structure testing area before beginning.
         </Text>
-
-        <TextInput
-          label="Team name"
-          mode="outlined"
-          value={teamName}
-          onChangeText={setTeamName}
-          placeholder="e.g. Lab Rats"
-          style={styles.input}
-        />
-        <HelperText type="info">
-          This identifies the team completing the earthquake challenge.
-        </HelperText>
-
-        <TextInput
-          label="Team member name"
-          mode="outlined"
-          value={memberName}
-          onChangeText={setMemberName}
-          placeholder="e.g. Josh"
-          style={styles.input}
-        />
-        <HelperText type="info">
-          Each member can test a structure design and compare results.
-        </HelperText>
 
         <Text
           variant="bodyMedium"
@@ -93,13 +61,13 @@ export default function EarthquakeSetupScreen() {
           {'  '}1. First structure design{'\n'}
           {'  '}2. Improved structure design{'\n'}
           {'  '}3. Final structure design{'\n\n'}
-          The phone should be placed in the centre of the platform before each shake test.
+          Place the phone in the centre of the platform before each shake test.
         </Text>
 
         <Button
           mode="contained"
           onPress={handleContinue}
-          disabled={!valid || saving}
+          disabled={saving}
           loading={saving}
           style={styles.button}
           contentStyle={styles.buttonContent}
@@ -117,14 +85,7 @@ const styles = StyleSheet.create({
   container: { padding: 24 },
   title: { marginBottom: 8, textAlign: 'center' },
   subtitle: { marginBottom: 24, textAlign: 'center' },
-  input: { marginBottom: 4 },
-  note: {
-    padding: 14,
-    marginTop: 16,
-    marginBottom: 24,
-    lineHeight: 22,
-    borderRadius: 8,
-  },
+  note: { padding: 14, marginBottom: 24, lineHeight: 22, borderRadius: 8 },
   button: {},
   buttonContent: { paddingVertical: 8 },
 });

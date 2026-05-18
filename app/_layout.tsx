@@ -3,7 +3,7 @@ import { ThemeProvider, useAppTheme } from '@/constants/ContextTheme';
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, Text as RNText, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 function AuthLoadingOverlay() {
@@ -11,21 +11,23 @@ function AuthLoadingOverlay() {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.3, duration: 900, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, [pulse]);
 
   return (
     <View style={[styles.overlay, { backgroundColor: theme.colors.background }]}>
-      <Animated.Text
-        style={[styles.appName, { opacity: pulse, color: theme.colors.primary }]}
-      >
-        LabRats
-      </Animated.Text>
+      <Animated.View style={{ opacity: pulse }}>
+        <RNText style={[styles.appName, { color: theme.colors.primary }]}>
+          LabRats
+        </RNText>
+      </Animated.View>
       <Text variant="bodyMedium" style={[styles.tagline, { color: theme.colors.onSurfaceVariant }]}>
         STEMM Activity Explorer
       </Text>
