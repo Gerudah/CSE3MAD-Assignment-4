@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, DataTable, Divider, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Bar, CartesianChart } from 'victory-native';
 
 type StructureResult = {
   prototype: Prototype;
@@ -163,28 +164,31 @@ export default function EarthquakeSummaryScreen() {
                   Results Bar Chart
                 </Text>
 
-                {results.map((item) => (
-                  <View key={item.prototype.id} style={styles.barRow}>
-                    <Text style={styles.barLabel}>
-                      Design {item.prototype.prototype_number}
-                    </Text>
-
-                    <View style={styles.barBackground}>
-                      <View
-                        style={[
-                          styles.barFill,
-                          {
-                            width: `${Math.min(item.stabilityScore ?? 0, 100)}%`,
-                          },
-                        ]}
+                <View style={styles.summaryChart}>
+                  <CartesianChart
+                    data={results.map(r => ({
+                      x: r.prototype.prototype_number,
+                      y: r.stabilityScore ?? 0,
+                    }))}
+                    xKey="x"
+                    yKeys={['y']}
+                    domain={{ y: [0, 100] }}
+                    domainPadding={{ left: 30, right: 30 }}
+                    xAxis={{ lineWidth: 1, lineColor: theme.colors.outline, tickCount: 0 }}
+                    yAxis={[{ lineWidth: 0, tickCount: 0 }]}
+                    padding={8}
+                  >
+                    {({ points, chartBounds }) => (
+                      <Bar
+                        points={points.y}
+                        chartBounds={chartBounds}
+                        color={theme.colors.primary}
+                        roundedCorners={{ topLeft: 6, topRight: 6 }}
+                        innerPadding={0.4}
                       />
-                    </View>
-
-                    <Text style={styles.barValue}>
-                      {item.stabilityScore ?? 0}
-                    </Text>
-                  </View>
-                ))}
+                    )}
+                  </CartesianChart>
+                </View>
               </Card.Content>
             </Card>
           </>
@@ -252,29 +256,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: 12,
   },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  barLabel: {
-    width: 75,
-  },
-  barBackground: {
-    flex: 1,
-    height: 14,
-    backgroundColor: '#ddd',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginHorizontal: 8,
-  },
-  barFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-  },
-  barValue: {
-    width: 35,
-    textAlign: 'right',
+  summaryChart: {
+    height: 180,
   },
   divider: {
     marginVertical: 16,
