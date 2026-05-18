@@ -1,3 +1,4 @@
+import { useAuth } from '@/constants/AuthContext';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
@@ -63,69 +64,64 @@ const activities = [
 ];
 
 export default function ActivityScreen() {
+  const { teamId } = useAuth();
+
+  function startActivity(path: string) {
+    if (!teamId) {
+      router.push('/team-formation');
+      return;
+    }
+    router.push(path as any);
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text variant="headlineLarge" style={styles.title}>Activity Page</Text>
         <Text variant="bodyLarge" style={styles.subtitle}>Choose a STEMM activity below.</Text>
 
-{activities.map((activity) => (
-  <Card key={activity.id} style={styles.card}>
-    <Card.Content>
-      <Text variant="labelLarge" style={styles.category}>
-        {activity.category}
-      </Text>
-
-      <Text variant="titleLarge" style={styles.activityName}>
-        {activity.name}
-      </Text>
-
-      <Text variant="bodyMedium">{activity.description}</Text>
-      <Text variant="bodyMedium">
-        Difficulty: {activity.difficulty}
-      </Text>
-      <Text variant="bodyMedium">
-        Duration: {activity.duration}
-      </Text>
-    </Card.Content>
-
-    <Card.Actions>
-      {activity.id === 1 ? (
-        <Button mode="contained" onPress={() => router.push('/activity/parachute')}>
-          Start Activity
-        </Button>
-      ) : activity.id === 3 ? (
-        <Button mode="contained" onPress={() => router.push('/activity/hand-fan')}>
-          Start Activity
-        </Button>
-      ) : activity.id === 4 ? (
-        <Button mode="contained" onPress={() => router.push('/activity/earthquake')}>
-          Start Activity
-        </Button>
-      ) : activity.id === 6 ? (
-        <Button mode="contained" onPress={() => router.push('/activity/reaction-board')}>
-          Start Activity
-        </Button>
-      ) : activity.id === 7 ? (
-        <Button mode="contained" onPress={() => router.push('/activity/breathing-pace')}>
-          Start Activity
-        </Button>
-      ) : (
-        <Button
-          mode="outlined"
-          onPress={() =>
-            router.push({
-              pathname: '/rating',
-              params: { activity: activity.name },
-            })
-          }
-        >
-          Rate This Activity
-        </Button>
-      )}
-    </Card.Actions>
-  </Card>
-))}
+        {activities.map((activity) => (
+          <Card key={activity.id} style={styles.card}>
+            <Card.Content>
+              <Text variant="labelLarge" style={styles.category}>{activity.category}</Text>
+              <Text variant="titleLarge" style={styles.activityName}>{activity.name}</Text>
+              <Text variant="bodyMedium">{activity.description}</Text>
+              <Text variant="bodyMedium">Difficulty: {activity.difficulty}</Text>
+              <Text variant="bodyMedium">Duration: {activity.duration}</Text>
+            </Card.Content>
+            <Card.Actions>
+              {activity.id === 1 ? (
+                <Button mode="contained" onPress={() => startActivity('/activity/parachute')}>
+                  Start Activity
+                </Button>
+              ) : activity.id === 3 ? (
+                <Button mode="contained" onPress={() => startActivity('/activity/hand-fan')}>
+                  Start Activity
+                </Button>
+              ) : activity.id === 6 ? (
+                <Button mode="contained" onPress={() => startActivity('/activity/reaction-board')}>
+                  Start Activity
+                </Button>
+              ) : activity.id === 7 ? (
+                <Button mode="contained" onPress={() => startActivity('/activity/breathing-pace')}>
+                  Start Activity
+                </Button>
+              ) : (
+                <Button
+                  mode="outlined"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/rating',
+                      params: { activity: activity.name },
+                    })
+                  }
+                >
+                  Rate This Activity
+                </Button>
+              )}
+            </Card.Actions>
+          </Card>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
