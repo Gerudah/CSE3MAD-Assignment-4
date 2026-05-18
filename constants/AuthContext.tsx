@@ -1,6 +1,7 @@
 import { auth, db as firestoreDb } from '@/firebaseConfig';
+import { findTeamByEmail } from '@/services/teamService';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type AuthContextValue = {
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // 12-hour session check
         const lastSignIn = new Date(firebaseUser.metadata.lastSignInTime ?? 0);
         const hoursSince = (Date.now() - lastSignIn.getTime()) / (1000 * 60 * 60);
         if (hoursSince > SESSION_HOURS) {
@@ -47,22 +49,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
+        // Try to load existing profile
         try {
-          const snap = await getDoc(doc(firestoreDb, 'user_profiles', firebaseUser.uid));
+          const snap = await getDoc(doc(firestoreDb, 'students', firebaseUser.uid));
           if (snap.exists()) {
             const data = snap.data();
-            setTeamId(data.team_id ?? null);
-            setTeamName(data.team_name ?? null);
-            setMemberName(data.member_name ?? null);
-          } else {
+            setTeamId(data.teamId ?? null);
+            setTeamName(data.teamName ?? null);
+            setMemberName(data.memberName ?? null);
+            setUser(firebaseUser);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Fall through to email lookup
+        }
+
+        // No profile — check if they were pre-added to a team by email
+        if (firebaseUser.email) {
+          try {
+            const found = await findTeamByEmail(firebaseUser.email);
+            if (found) {
+              const defaultName =
+                firebaseUser.displayName || firebaseUser.email.split('@')[0];
+              await setDoc(doc(firestoreDb, 'students', firebaseUser.uid), {
+                teamId: found.teamId,
+                teamName: found.teamName,
+                memberName: defaultName,
+                updatedAt: Date.now(),
+              });
+              setTeamId(found.teamId);
+              setTeamName(found.teamName);
+              setMemberName(defaultName);
+            } else {
+              setTeamId(null);
+              setTeamName(null);
+              setMemberName(null);
+            }
+          } catch {
             setTeamId(null);
             setTeamName(null);
             setMemberName(null);
           }
-        } catch {
-          setTeamId(null);
-          setTeamName(null);
-          setMemberName(null);
         }
 
         setUser(firebaseUser);
