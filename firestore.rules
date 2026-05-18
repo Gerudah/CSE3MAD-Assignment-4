@@ -41,11 +41,37 @@ service cloud.firestore {
       allow write: if isAuth() && myTeamId() == request.resource.data.teamId;
     }
 
-    // Any authenticated student can read badge awards (needed for profile views)
+    // Any authenticated student can read badge awards
     // Students can only write their own awards
     match /student_badges/{awardId} {
       allow read: if isAuth();
       allow write: if isAuth() && request.resource.data.studentId == request.auth.uid;
+    }
+
+    // Activity result collections — authenticated create only, no edits or deletes
+    match /reactionResults/{resultId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    match /breathingResults/{resultId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    match /handFanResults/{resultId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // Activity ratings — any authenticated student can submit or read
+    match /ratings/{ratingId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
     }
   }
 }
