@@ -1,6 +1,30 @@
+import { AuthProvider, useAuth } from '@/constants/AuthContext';
 import { ThemeProvider, useAppTheme } from '@/constants/ContextTheme';
-import { Stack } from 'expo-router';
+import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+
+function AuthGuard() {
+  const { user, teamId, loading } = useAuth();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const onLogin = segments[0] === 'login';
+    const onTeamFormation = segments[0] === 'team-formation';
+
+    if (!user && !onLogin) {
+      router.replace('/login');
+    } else if (user && onLogin) {
+      router.replace(teamId ? '/(tabs)' : '/team-formation');
+    } else if (user && !teamId && !onTeamFormation) {
+      router.replace('/team-formation');
+    }
+  }, [user, teamId, loading, segments]);
+
+  return null;
+}
 
 function RootStack() {
   const { theme, isDark } = useAppTheme();
@@ -8,6 +32,7 @@ function RootStack() {
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <AuthGuard />
       <Stack
         screenOptions={{
           headerTitleAlign: 'center',
@@ -16,7 +41,7 @@ function RootStack() {
           headerTitleStyle: { color: theme.colors.onSurface },
         }}
       >
-        <Stack.Screen name="login" options={{ title: 'Login' }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="team-formation" options={{ title: 'Team Formation' }} />
         <Stack.Screen name="rating" options={{ title: 'Rate Activity' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -29,7 +54,9 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootStack />
+      <AuthProvider>
+        <RootStack />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
