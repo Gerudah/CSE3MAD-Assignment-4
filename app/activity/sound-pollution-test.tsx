@@ -1,10 +1,11 @@
-// Requires: npx expo install expo-av
+// Requires: npx expo install expo-av react-native-maps
 import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService } from '@/db';
 import { Audio } from 'expo-av';
+import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button, Card, Chip, DataTable, HelperText,
   Text, TextInput,
@@ -12,9 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CartesianChart, Line } from 'victory-native';
 
-// dBFS → approximate SPL calibration offset (phone mic typical sensitivity)
 const DB_OFFSET = 90;
 const MEASURE_DURATION_MS = 5000;
+const METER_INTERVAL_MS = 16;
 const MIN_LOCATIONS = 3;
 
 const PRESET_LOCATIONS = [
@@ -22,12 +23,21 @@ const PRESET_LOCATIONS = [
   'Outside (quiet)', 'Outside (traffic)', 'Sports Hall', 'Bathroom',
 ];
 
+function riskColor(db: number): string {
+  if (db < 60) return '#4CAF50';
+  if (db < 75) return '#FFC107';
+  if (db < 90) return '#FF9800';
+  return '#F44336';
+}
+
 type LocationReading = {
   name: string;
   predictedDb: number;
   avgDb: number;
   maxDb: number;
   protoId: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 export default function SoundPollutionTestScreen() {
@@ -38,13 +48,11 @@ export default function SoundPollutionTestScreen() {
 
   const [readings, setReadings] = useState<LocationReading[]>([]);
 
-  // Location selection
   const [selectedLocation, setSelectedLocation] = useState('');
   const [customLocation, setCustomLocation] = useState('');
   const [prediction, setPrediction] = useState('');
   const [inputError, setInputError] = useState('');
 
-  // Measurement state
   const [measuring, setMeasuring] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [liveDb, setLiveDb] = useState(0);
@@ -55,8 +63,11 @@ export default function SoundPollutionTestScreen() {
   const samplesRef = useRef<number[]>([]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
+    // Request on mount so Android shows the permission dialog before first measurement
+    Location.requestForegroundPermissionsAsync().catch(() => {});
     return () => {
       countdownRef.current && clearInterval(countdownRef.current);
       stopTimerRef.current && clearTimeout(stopTimerRef.current);
@@ -102,10 +113,16 @@ export default function SoundPollutionTestScreen() {
     }
 
     samplesRef.current = [];
+    locationRef.current = null;
     setWaveform([]);
     setLiveDb(0);
     setMeasuring(true);
     setCountdown(Math.round(MEASURE_DURATION_MS / 1000));
+
+    // Kick off GPS fetch in parallel — 5 s of recording gives it time to get a fix
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      .then(loc => { locationRef.current = { lat: loc.coords.latitude, lng: loc.coords.longitude }; })
+      .catch(() => {});
 
     try {
       const { recording } = await Audio.Recording.createAsync(
@@ -115,10 +132,10 @@ export default function SoundPollutionTestScreen() {
             const spl = Math.max(30, Math.round(status.metering + DB_OFFSET));
             setLiveDb(spl);
             samplesRef.current.push(spl);
-            setWaveform(prev => [...prev, spl].slice(-40));
+            setWaveform(prev => [...prev, spl].slice(-120));
           }
         },
-        200,
+        METER_INTERVAL_MS,
       );
       recordingRef.current = recording;
     } catch {
@@ -127,12 +144,10 @@ export default function SoundPollutionTestScreen() {
       return;
     }
 
-    // Countdown ticker
     countdownRef.current = setInterval(() => {
       setCountdown(c => Math.max(0, c - 1));
     }, 1000);
 
-    // Auto-stop after MEASURE_DURATION_MS
     stopTimerRef.current = setTimeout(stopAndSave, MEASURE_DURATION_MS);
   }
 
@@ -154,6 +169,9 @@ export default function SoundPollutionTestScreen() {
     const maxDb = samples.length > 0 ? Math.max(...samples) : 0;
     const pred = parseFloat(prediction);
 
+    const lat = locationRef.current?.lat ?? null;
+    const lng = locationRef.current?.lng ?? null;
+
     const protoId = await prototypeService.create(
       sessionId,
       readings.length + 1,
@@ -162,10 +180,13 @@ export default function SoundPollutionTestScreen() {
     await measurementService.add(protoId, 'avg_db_spl', avgDb, 'dB', locationName);
     await measurementService.add(protoId, 'max_db_spl', maxDb, 'dB', locationName);
     await measurementService.add(protoId, 'predicted_db', pred, 'dB', locationName);
+    if (lat !== null && lng !== null) {
+      await measurementService.add(protoId, 'gps_lat', lat, 'deg', locationName);
+      await measurementService.add(protoId, 'gps_lng', lng, 'deg', locationName);
+    }
 
-    setReadings(prev => [...prev, { name: locationName, predictedDb: pred, avgDb, maxDb, protoId }]);
+    setReadings(prev => [...prev, { name: locationName, predictedDb: pred, avgDb, maxDb, protoId, lat, lng }]);
 
-    // Reset form
     setSelectedLocation('');
     setCustomLocation('');
     setPrediction('');
@@ -182,16 +203,17 @@ export default function SoundPollutionTestScreen() {
   }
 
   const yMax = waveform.length > 0 ? Math.max(80, Math.max(...waveform)) : 80;
+  const currentRiskColor = riskColor(liveDb);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text variant="headlineSmall" style={styles.title}>Sound Level Measurements</Text>
         <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
           Team: {teamName} | Measured: {readings.length} location{readings.length !== 1 ? 's' : ''}
         </Text>
 
-        {/* Location chips */}
         <Text variant="titleSmall" style={styles.label}>Select Location</Text>
         <View style={styles.chipRow}>
           {[...PRESET_LOCATIONS, 'Custom'].map(loc => (
@@ -231,15 +253,14 @@ export default function SoundPollutionTestScreen() {
 
         {inputError ? <HelperText type="error" visible>{inputError}</HelperText> : null}
 
-        {/* Live meter card */}
         {(measuring || liveDb > 0) && (
-          <Card style={styles.card}>
+          <Card style={[styles.card, { borderColor: currentRiskColor, borderWidth: measuring ? 2 : 0 }]}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.cardTitle}>
                 {measuring ? `Measuring — ${countdown}s remaining` : 'Last measurement'}
               </Text>
 
-              <Text variant="displaySmall" style={[styles.dbDisplay, { color: theme.colors.primary }]}>
+              <Text variant="displaySmall" style={[styles.dbDisplay, { color: currentRiskColor }]}>
                 {liveDb} dB
               </Text>
 
@@ -256,12 +277,28 @@ export default function SoundPollutionTestScreen() {
                   {({ points }) => (
                     <Line
                       points={points.y}
-                      color={measuring ? theme.colors.primary : theme.colors.outline}
+                      color={measuring ? currentRiskColor : theme.colors.outline}
                       strokeWidth={2}
                     />
                   )}
                 </CartesianChart>
               </View>
+
+              {measuring && (
+                <View style={styles.riskLegend}>
+                  {[
+                    { label: '<60 safe', color: '#4CAF50' },
+                    { label: '60–75', color: '#FFC107' },
+                    { label: '75–90', color: '#FF9800' },
+                    { label: '>90 danger', color: '#F44336' },
+                  ].map(r => (
+                    <View key={r.label} style={styles.riskItem}>
+                      <View style={[styles.riskDot, { backgroundColor: r.color }]} />
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{r.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </Card.Content>
           </Card>
         )}
@@ -288,7 +325,6 @@ export default function SoundPollutionTestScreen() {
           </Button>
         )}
 
-        {/* Recorded locations */}
         {readings.length > 0 && (
           <Card style={styles.card}>
             <Card.Content>
@@ -296,13 +332,18 @@ export default function SoundPollutionTestScreen() {
               <DataTable>
                 <DataTable.Header>
                   <DataTable.Title>Location</DataTable.Title>
-                  <DataTable.Title numeric>Predicted</DataTable.Title>
+                  <DataTable.Title numeric>Pred.</DataTable.Title>
                   <DataTable.Title numeric>Avg dB</DataTable.Title>
                   <DataTable.Title numeric>Max dB</DataTable.Title>
                 </DataTable.Header>
                 {readings.map((r, i) => (
                   <DataTable.Row key={i}>
-                    <DataTable.Cell>{r.name}</DataTable.Cell>
+                    <DataTable.Cell>
+                      <View style={styles.riskCellRow}>
+                        <View style={[styles.riskDot, { backgroundColor: riskColor(r.avgDb) }]} />
+                        <Text variant="bodySmall">{r.name}</Text>
+                      </View>
+                    </DataTable.Cell>
                     <DataTable.Cell numeric>{r.predictedDb}</DataTable.Cell>
                     <DataTable.Cell numeric>{r.avgDb}</DataTable.Cell>
                     <DataTable.Cell numeric>{r.maxDb}</DataTable.Cell>
@@ -325,6 +366,7 @@ export default function SoundPollutionTestScreen() {
             : 'View Summary'}
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -343,4 +385,8 @@ const styles = StyleSheet.create({
   dbDisplay: { textAlign: 'center', marginBottom: 8, fontWeight: '700' },
   waveform: { height: 120 },
   button: { marginBottom: 12 },
+  riskLegend: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' },
+  riskItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  riskDot: { width: 8, height: 8, borderRadius: 4 },
+  riskCellRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });
