@@ -10,6 +10,7 @@ type AuthContextValue = {
   teamName: string | null;
   memberName: string | null;
   loading: boolean;
+  findingTeam: boolean;
   setTeam: (id: string, name: string, member: string) => void;
   logout: () => Promise<void>;
 };
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextValue>({
   teamName: null,
   memberName: null,
   loading: true,
+  findingTeam: false,
   setTeam: () => {},
   logout: async () => {},
 });
@@ -32,10 +34,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [teamName, setTeamName] = useState<string | null>(null);
   const [memberName, setMemberName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [findingTeam, setFindingTeam] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        setLoading(true); // cover the screen while we fetch profile data
         // 12-hour session check
         const lastSignIn = new Date(firebaseUser.metadata.lastSignInTime ?? 0);
         const hoursSince = (Date.now() - lastSignIn.getTime()) / (1000 * 60 * 60);
@@ -49,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Try to load existing profile
+        // Try to load existing profile — this is the only blocking Firestore call
         try {
           const snap = await getDoc(doc(firestoreDb, 'students', firebaseUser.uid));
           if (snap.exists()) {
@@ -62,16 +66,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
         } catch {
-          // Fall through to email lookup
+          // Fall through
         }
 
-        // No profile — check if they were pre-added to a team by email
+        // No profile yet — unblock the UI immediately, then search for a pre-added team in background
+        setUser(firebaseUser);
+        setTeamId(null);
+        setTeamName(null);
+        setMemberName(null);
+        setLoading(false);
+
         if (firebaseUser.email) {
-          try {
-            const found = await findTeamByEmail(firebaseUser.email);
-            if (found) {
-              const defaultName =
-                firebaseUser.displayName || firebaseUser.email.split('@')[0];
+          setFindingTeam(true);
+          const email = firebaseUser.email;
+          findTeamByEmail(email)
+            .then(async (found) => {
+              if (!found) return;
+              const defaultName = firebaseUser.displayName || email.split('@')[0];
               await setDoc(doc(firestoreDb, 'students', firebaseUser.uid), {
                 teamId: found.teamId,
                 teamName: found.teamName,
@@ -81,26 +92,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setTeamId(found.teamId);
               setTeamName(found.teamName);
               setMemberName(defaultName);
-            } else {
-              setTeamId(null);
-              setTeamName(null);
-              setMemberName(null);
-            }
-          } catch {
-            setTeamId(null);
-            setTeamName(null);
-            setMemberName(null);
-          }
+            })
+            .catch(() => {})
+            .finally(() => setFindingTeam(false));
         }
-
-        setUser(firebaseUser);
       } else {
         setUser(null);
         setTeamId(null);
         setTeamName(null);
         setMemberName(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe;
@@ -117,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, teamId, teamName, memberName, loading, setTeam, logout }}>
+    <AuthContext.Provider value={{ user, teamId, teamName, memberName, loading, findingTeam, setTeam, logout }}>
       {children}
     </AuthContext.Provider>
   );

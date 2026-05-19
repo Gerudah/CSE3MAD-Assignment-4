@@ -41,11 +41,11 @@ export default function LoginScreen() {
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
       }
-      // AuthGuard in _layout.tsx handles navigation after auth state updates
+      // Keep loading=true on success — AuthContext will show its overlay while
+      // it fetches the profile, then AuthGuard navigates away (unmounting this screen).
     } catch (e: any) {
       console.error('[Auth error]', e?.code, e?.message);
       setError(friendlyError(e?.code ?? ''));
-    } finally {
       setLoading(false);
     }
   };

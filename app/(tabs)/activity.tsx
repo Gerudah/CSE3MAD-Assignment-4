@@ -141,6 +141,15 @@ export default function ActivityScreen() {
                                 >
                                     Start Activity
                                 </Button>
+                            ) : activity.id === 5 ? (
+                                <Button
+                                    mode="contained"
+                                    onPress={() =>
+                                        startActivity("/activity/stretch-speed")
+                                    }
+                                >
+                                    Start Activity
+                                </Button>
                             ) : activity.id === 6 ? (
                                 <Button
                                     mode="contained"
