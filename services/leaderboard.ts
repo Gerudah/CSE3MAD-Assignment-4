@@ -44,6 +44,22 @@ const ACTIVITY_CONFIGS: Record<string, ActivityConfig> = {
     higherIsBetter: false,
     scoreLabel: 'resting BPM',
   },
+  sound_pollution: {
+    // Highest dB range (max − min across locations) = most thorough explorer
+    bestScoreQuery: `WITH per_location AS (
+      SELECT
+        MAX(CASE WHEN m.metric_key = 'max_db_spl' THEN m.value END) AS max_db,
+        MIN(CASE WHEN m.metric_key = 'avg_db_spl' THEN m.value END) AS min_avg_db
+      FROM measurements m JOIN prototypes p ON p.id = m.prototype_id
+      WHERE p.session_id = ?
+      GROUP BY p.id
+    )
+    SELECT (MAX(max_db) - MIN(min_avg_db)) AS score
+    FROM per_location`,
+    unit: 'dB',
+    higherIsBetter: true,
+    scoreLabel: 'dB range',
+  },
   stretch_speed_gracefulness: {
     // Primary: avg of best jitter per movement (mm). Tiebreaker: avg best duration / 10000
     // Duration weight keeps it below 0.01mm precision so it only separates exact jitter ties.

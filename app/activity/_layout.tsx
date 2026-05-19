@@ -43,6 +43,11 @@ export default function ActivityLayout() {
       <Stack.Screen name="stretch-speed-setup" options={{ title: 'Activity Setup' }} />
       <Stack.Screen name="stretch-speed-test" options={{ title: 'Movement Tests' }} />
       <Stack.Screen name="stretch-speed-summary" options={{ title: 'Results' }} />
+
+      <Stack.Screen name="sound-pollution" options={{ title: 'Sound Pollution Hunter' }} />
+      <Stack.Screen name="sound-pollution-setup" options={{ title: 'Activity Setup' }} />
+      <Stack.Screen name="sound-pollution-test" options={{ title: 'Noise Measurements' }} />
+      <Stack.Screen name="sound-pollution-summary" options={{ title: 'Results' }} />
     </Stack>
   );
 }

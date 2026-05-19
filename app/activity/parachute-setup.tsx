@@ -1,7 +1,7 @@
 import { useAppTheme } from '@/constants/ContextTheme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,7 +25,8 @@ export default function ParachuteSetupScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text variant="headlineSmall" style={styles.title}>Before You Start</Text>
         <Text variant="bodyLarge" style={styles.subtitle}>
           Measure your drop height and weigh your toy so the app can calculate forces automatically.
@@ -82,6 +83,7 @@ export default function ParachuteSetupScreen() {
           Start Tests
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -4,7 +4,7 @@ import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bar, CartesianChart } from 'victory-native';
@@ -102,7 +102,8 @@ export default function BreathingPaceTestScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text variant="headlineMedium" style={styles.title}>
           Breathing Pace Trainer
         </Text>
@@ -210,6 +211,7 @@ export default function BreathingPaceTestScreen() {
           View Summary
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

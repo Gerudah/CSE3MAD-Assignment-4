@@ -2,7 +2,7 @@ import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService, sessionService } from '@/db';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, DataTable, Divider, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bar, CartesianChart } from 'victory-native';
@@ -87,7 +87,8 @@ export default function StretchSpeedSummaryScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text variant="headlineMedium" style={styles.title}>
           Activity Results
         </Text>
@@ -283,6 +284,7 @@ export default function StretchSpeedSummaryScreen() {
           Back to Activities
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

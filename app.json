@@ -12,6 +12,11 @@
       "supportsTablet": true
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,7 +48,8 @@
       ],
       "expo-sqlite",
       "expo-video",
-      "expo-location"
+      "expo-location",
+      "expo-av"
     ],
     "experiments": {
       "typedRoutes": true
