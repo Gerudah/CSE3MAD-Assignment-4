@@ -123,6 +123,15 @@ export default function ActivityScreen() {
                                 >
                                     Start Activity
                                 </Button>
+                            ) : activity.id === 2 ? (
+                                <Button
+                                    mode="contained"
+                                    onPress={() =>
+                                        startActivity("/activity/sound-pollution")
+                                    }
+                                >
+                                    Start Activity
+                                </Button>
                             ) : activity.id === 3 ? (
                                 <Button
                                     mode="contained"
