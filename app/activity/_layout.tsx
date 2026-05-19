@@ -38,6 +38,11 @@ export default function ActivityLayout() {
       <Stack.Screen name="earthquake-design" options={{ title: 'Design Structure' }} />
       <Stack.Screen name="earthquake-test" options={{ title: 'Shake Test' }} />
       <Stack.Screen name="earthquake-summary" options={{ title: 'Results' }} />
+
+      <Stack.Screen name="stretch-speed" options={{ title: 'Human Performance Lab' }} />
+      <Stack.Screen name="stretch-speed-setup" options={{ title: 'Activity Setup' }} />
+      <Stack.Screen name="stretch-speed-test" options={{ title: 'Movement Tests' }} />
+      <Stack.Screen name="stretch-speed-summary" options={{ title: 'Results' }} />
     </Stack>
   );
 }
