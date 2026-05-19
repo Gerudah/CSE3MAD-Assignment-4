@@ -3,7 +3,7 @@ import { measurementService, prototypeService, sessionService } from '@/db';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, DataTable, Divider, Text, TextInput } from 'react-native-paper';
+import { Button, Card, DataTable, Divider, Icon, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bar, CartesianChart } from 'victory-native';
 
@@ -259,12 +259,21 @@ export default function StretchSpeedSummaryScreen() {
         <Button
           mode="contained"
           onPress={saveReflection}
-          disabled={!reflection.trim()}
+          disabled={completed || !reflection.trim()}
           style={styles.button}
-          icon="content-save"
+          icon={completed ? 'check-circle' : 'content-save'}
         >
           {completed ? 'Reflection Saved' : 'Save Reflection'}
         </Button>
+
+        {completed && (
+          <View style={[styles.savedBanner, { backgroundColor: theme.colors.primaryContainer }]}>
+            <Icon source="check-circle" size={18} color={theme.colors.primary} />
+            <Text variant="bodyMedium" style={{ color: theme.colors.onPrimaryContainer, marginLeft: 8 }}>
+              Reflection saved successfully!
+            </Text>
+          </View>
+        )}
 
         <Button
           mode="contained-tonal"
@@ -273,7 +282,7 @@ export default function StretchSpeedSummaryScreen() {
           onPress={() =>
             router.push({
               pathname: '/rating',
-              params: { activity: 'Human Performance Lab - Stretch Speed & Gracefulness' },
+              params: { activity: 'Human Performance Lab - Stretch, Speed and Gracefulness' },
             })
           }
         >
@@ -303,4 +312,5 @@ const styles = StyleSheet.create({
   divider: { marginVertical: 16 },
   input: { marginBottom: 16 },
   button: { marginBottom: 10 },
+  savedBanner: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, marginBottom: 10 },
 });

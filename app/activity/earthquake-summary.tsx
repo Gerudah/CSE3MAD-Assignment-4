@@ -5,7 +5,7 @@ import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, DataTable, Divider, Text, TextInput } from 'react-native-paper';
+import { Button, Card, DataTable, Divider, Icon, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bar, CartesianChart } from 'victory-native';
 
@@ -212,12 +212,21 @@ export default function EarthquakeSummaryScreen() {
         <Button
           mode="contained"
           onPress={saveReflection}
-          disabled={!reflection.trim()}
+          disabled={completed || !reflection.trim()}
           style={styles.button}
-          icon="content-save"
+          icon={completed ? 'check-circle' : 'content-save'}
         >
           {completed ? 'Reflection Saved' : 'Save Reflection'}
         </Button>
+
+        {completed && (
+          <View style={[styles.savedBanner, { backgroundColor: theme.colors.primaryContainer }]}>
+            <Icon source="check-circle" size={18} color={theme.colors.primary} />
+            <Text variant="bodyMedium" style={{ color: theme.colors.onPrimaryContainer, marginLeft: 8 }}>
+              Reflection saved successfully!
+            </Text>
+          </View>
+        )}
 
         <Button
           mode="contained-tonal"
@@ -226,7 +235,7 @@ export default function EarthquakeSummaryScreen() {
           onPress={() =>
             router.push({
               pathname: '/rating',
-              params: { activity: 'Earthquake-Resistant Structure' },
+              params: { activity: 'Earthquake-Resistance Structure' },
             })
           }
         >
@@ -270,6 +279,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
+    marginBottom: 10,
+  },
+  savedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 10,
   },
 });
