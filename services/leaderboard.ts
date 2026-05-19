@@ -44,6 +44,14 @@ const ACTIVITY_CONFIGS: Record<string, ActivityConfig> = {
     higherIsBetter: false,
     scoreLabel: 'resting BPM',
   },
+  earthquake_structure: {
+    bestScoreQuery: `SELECT MAX(m.value) AS score
+      FROM measurements m JOIN prototypes p ON p.id = m.prototype_id
+      WHERE p.session_id = ? AND m.metric_key = 'stability_score'`,
+    unit: 'pts',
+    higherIsBetter: true,
+    scoreLabel: 'stability score',
+  },
   sound_pollution: {
     // Highest dB range (max − min across locations) = most thorough explorer
     bestScoreQuery: `WITH per_location AS (

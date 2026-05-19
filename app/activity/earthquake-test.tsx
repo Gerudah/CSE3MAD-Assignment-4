@@ -2,13 +2,11 @@ import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService } from '@/db';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Vibration, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Area, CartesianChart, Line } from 'victory-native';
-import { auth, db } from '../../firebaseConfig';
 
 export default function EarthquakeTestScreen() {
   const { sessionId, protoId, design, teamName, memberName } =
@@ -110,22 +108,6 @@ export default function EarthquakeTestScreen() {
       'score',
       'shake_test'
     );
-
-    // Firestore save
-    await addDoc(collection(db, 'earthquakeResults'), {
-      activity: 'Earthquake-Resistant Structure',
-      sessionId,
-      prototypeId: protoId,
-      teamName: String(teamName || 'Unknown Team'),
-      memberName: String(memberName || 'Unknown Member'),
-      designNumber: designNum,
-      movementRangeCm: movementRange,
-      maxDisplacementCm: maxDisplacement,
-      stabilityScore,
-      userId: auth.currentUser?.uid || 'guest',
-      userEmail: auth.currentUser?.email || 'guest',
-      createdAt: serverTimestamp(),
-    });
 
     setSaving(false);
 

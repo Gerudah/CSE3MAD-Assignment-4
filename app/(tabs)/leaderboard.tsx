@@ -30,46 +30,41 @@ type LeaderboardEntry = FirestoreEntry & { rank: number };
 const MEDAL_COLORS = ['#FFD700', '#A8A9AD', '#CD7F32'];
 
 const ACTIVITY_FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: 'parachute_drop', label: 'Parachute' },
-  { value: 'hand_fan', label: 'Hand Fan' },
-  { value: 'breathing_pace', label: 'Breathing' },
-  { value: 'reaction_board', label: 'Reaction' },
+  { value: 'parachute_drop',             label: 'Parachute' },
+  { value: 'sound_pollution',            label: 'Noise Hunt' },
+  { value: 'hand_fan',                   label: 'Hand Fan' },
+  { value: 'earthquake_structure',       label: 'Earthquake' },
+  { value: 'stretch_speed_gracefulness', label: 'Stretch Lab' },
+  { value: 'reaction_board',             label: 'Reaction' },
+  { value: 'breathing_pace',             label: 'Breathing' },
 ];
 
 const ACTIVITY_LABELS: Record<string, string> = {
-  parachute_drop: 'Parachute Drop',
-  hand_fan: 'Hand Fan',
-  breathing_pace: 'Breathing Pace',
-  reaction_board: 'Reaction Board',
+  parachute_drop:             'Parachute Drop',
+  sound_pollution:            'Sound Pollution Hunter',
+  hand_fan:                   'Hand Fan Challenge',
+  earthquake_structure:       'Earthquake Structure',
+  stretch_speed_gracefulness: 'Human Performance Lab',
+  reaction_board:             'Reaction Board',
+  breathing_pace:             'Breathing Pace',
 };
 
-function rankEntries(rows: FirestoreEntry[], filter: string): LeaderboardEntry[] {
-  if (filter === 'all') {
-    const groups: Record<string, FirestoreEntry[]> = {};
-    for (const r of rows) {
-      if (!groups[r.activity_id]) groups[r.activity_id] = [];
-      groups[r.activity_id].push(r);
-    }
-    const result: LeaderboardEntry[] = [];
-    for (const actRows of Object.values(groups)) {
-      const sorted = [...actRows].sort((a, b) =>
-        a.higher_is_better ? b.score - a.score : a.score - b.score
-      );
-      sorted.forEach((r, i) => result.push({ ...r, rank: i + 1 }));
-    }
-    result.sort((a, b) => a.activity_id.localeCompare(b.activity_id) || a.rank - b.rank);
-    return result;
-  }
+function rankEntries(rows: FirestoreEntry[]): LeaderboardEntry[] {
+  if (rows.length === 0) return [];
   const sorted = [...rows].sort((a, b) =>
-    rows[0]?.higher_is_better ? b.score - a.score : a.score - b.score
+    a.higher_is_better ? b.score - a.score : a.score - b.score
   );
   return sorted.map((r, i) => ({ ...r, rank: i + 1 }));
 }
 
 function formatScore(score: number, unit: string): string {
-  if (unit === 'ms') return `${score}ms`;
-  if (unit === 's') return `${score.toFixed(3)}s`;
+  if (unit === 'ms')  return `${Math.round(score)} ms`;
+  if (unit === 's')   return `${score.toFixed(2)} s`;
+  if (unit === 'pts') return `${Math.round(score)} pts`;
+  if (unit === 'mm')  return `${score.toFixed(2)} mm`;
+  if (unit === 'dB')  return `${Math.round(score)} dB`;
+  if (unit === 'N')   return `${score.toFixed(2)} N`;
+  if (unit === 'bpm') return `${Math.round(score)} bpm`;
   return `${score.toFixed(2)} ${unit}`;
 }
 
@@ -91,7 +86,7 @@ export default function LeaderboardScreen() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activityFilter, setActivityFilter] = useState('all');
+  const [activityFilter, setActivityFilter] = useState('parachute_drop');
 
   useFocusEffect(
     useCallback(() => {
@@ -107,13 +102,11 @@ export default function LeaderboardScreen() {
           if (active) setMyTeamId(teamRow?.team_id ?? null);
 
           const ref = collection(firestoreDb, 'leaderboard');
-          const q = activityFilter === 'all'
-            ? ref
-            : query(ref, where('activity_id', '==', activityFilter));
+          const q = query(ref, where('activity_id', '==', activityFilter));
           const snapshot = await getDocs(q);
           const rows = snapshot.docs.map(d => d.data() as FirestoreEntry);
 
-          if (active) setEntries(rankEntries(rows, activityFilter));
+          if (active) setEntries(rankEntries(rows));
         } finally {
           if (active) setLoading(false);
         }
@@ -125,13 +118,14 @@ export default function LeaderboardScreen() {
   );
 
   const myEntry = myTeamId ? entries.find(e => e.team_id === myTeamId) ?? null : null;
+  const activityLabel = ACTIVITY_LABELS[activityFilter] ?? activityFilter;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
         <Text variant="headlineMedium" style={styles.title}>Leaderboard</Text>
         <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-          Global rankings — best score per team
+          {activityLabel} — best score per team
         </Text>
         <ScrollView
           horizontal
@@ -161,7 +155,7 @@ export default function LeaderboardScreen() {
             variant="bodyLarge"
             style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}
           >
-            No results yet.{'\n'}Complete an activity to appear here.
+            No results yet for {activityLabel}.{'\n'}Complete this activity to appear here.
           </Text>
         </View>
       ) : (
@@ -208,10 +202,7 @@ export default function LeaderboardScreen() {
                     )}
                   </View>
                   <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {activityFilter === 'all'
-                      ? `${ACTIVITY_LABELS[item.activity_id] ?? item.activity_id} • `
-                      : ''
-                    }{item.score_label} • {formatDate(item.completed_at)}
+                    {item.score_label} · {formatDate(item.completed_at)}
                   </Text>
                 </View>
 
@@ -244,6 +235,9 @@ export default function LeaderboardScreen() {
             <Text variant="titleMedium" numberOfLines={1} style={{ color: theme.colors.onPrimaryContainer }}>
               {myTeamId}
             </Text>
+            <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer, opacity: 0.7 }}>
+              {activityLabel}
+            </Text>
           </View>
 
           {myEntry ? (
@@ -253,7 +247,7 @@ export default function LeaderboardScreen() {
                   {rankLabel(myEntry.rank)}
                 </Text>
                 <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer }}>
-                  of {entries.filter(e => e.activity_id === myEntry.activity_id).length}
+                  of {entries.length}
                 </Text>
               </View>
               <View style={styles.stickyScore}>
