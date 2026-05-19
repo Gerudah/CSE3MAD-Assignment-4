@@ -90,6 +90,22 @@ export async function joinTeamByCode(params: {
   return { teamId, teamName: data.team_name };
 }
 
+export async function updateMemberName(uid: string, name: string): Promise<void> {
+  await setDoc(doc(db, 'students', uid), {
+    memberName: name.trim(),
+    updatedAt: Date.now(),
+  }, { merge: true });
+}
+
+export async function leaveTeam(uid: string): Promise<void> {
+  await setDoc(doc(db, 'students', uid), {
+    teamId: null,
+    teamName: null,
+    memberName: null,
+    updatedAt: Date.now(),
+  });
+}
+
 export async function findTeamByEmail(
   email: string
 ): Promise<{ teamId: string; teamName: string } | null> {

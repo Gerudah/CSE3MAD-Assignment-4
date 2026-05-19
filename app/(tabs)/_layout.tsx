@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { BottomNavigation } from 'react-native-paper';
 
+import AccountRoute from './account';
 import ActivityRoute from './activity';
 import IndexRoute from './index';
 import LeaderboardRoute from './leaderboard';
-import SettingsRoute from './settings';
 
 const MyComponent = () => {
   const [index, setIndex] = React.useState(0);
@@ -12,14 +12,14 @@ const MyComponent = () => {
     { key: 'index', title: 'Home', focusedIcon: 'home', unfocusedIcon: 'home-outline'},
     { key: 'activity', title: 'Activity', focusedIcon: 'view-grid-plus', unfocusedIcon: 'view-grid-plus-outline', },
     { key: 'leaderboard', title: 'Leaderboard', focusedIcon: 'list-box', unfocusedIcon: 'list-box-outline' },
-    { key: 'settings', title: 'Settings', focusedIcon: 'cog', unfocusedIcon: 'cog-outline' },
+    { key: 'account', title: 'Account', focusedIcon: 'account-circle', unfocusedIcon: 'account-circle-outline' },
   ]);
 
   const renderScene = BottomNavigation.SceneMap({
     index: IndexRoute,
     activity: ActivityRoute,
     leaderboard: LeaderboardRoute,
-    settings: SettingsRoute,
+    account: AccountRoute,
   });
 
   return (

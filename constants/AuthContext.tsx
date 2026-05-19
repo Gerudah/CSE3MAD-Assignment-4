@@ -12,6 +12,8 @@ type AuthContextValue = {
   loading: boolean;
   findingTeam: boolean;
   setTeam: (id: string, name: string, member: string) => void;
+  clearTeam: () => void;
+  updateName: (name: string) => void;
   logout: () => Promise<void>;
 };
 
@@ -23,6 +25,8 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   findingTeam: false,
   setTeam: () => {},
+  clearTeam: () => {},
+  updateName: () => {},
   logout: async () => {},
 });
 
@@ -114,12 +118,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMemberName(member);
   };
 
+  const clearTeam = () => {
+    setTeamId(null);
+    setTeamName(null);
+    setMemberName(null);
+  };
+
+  const updateName = (name: string) => {
+    setMemberName(name);
+  };
+
   const logout = async () => {
     await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, teamId, teamName, memberName, loading, findingTeam, setTeam, logout }}>
+    <AuthContext.Provider value={{ user, teamId, teamName, memberName, loading, findingTeam, setTeam, clearTeam, updateName, logout }}>
       {children}
     </AuthContext.Provider>
   );

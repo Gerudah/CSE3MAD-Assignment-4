@@ -1,5 +1,6 @@
 import { useAuth } from '@/constants/AuthContext';
 import { useAppTheme } from '@/constants/ContextTheme';
+import { generateName } from '@/services/nameGenerator';
 import { createTeam, joinTeamByCode } from '@/services/teamService';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -23,7 +24,7 @@ export default function TeamFormationScreen() {
   const [tab, setTab] = useState<'create' | 'join'>('create');
 
   // Create tab
-  const [myName, setMyName] = useState('');
+  const [myName, setMyName] = useState(() => generateName());
   const [teamName, setTeamName] = useState('');
   const [memberEmails, setMemberEmails] = useState<string[]>(['']);
   const [creating, setCreating] = useState(false);
@@ -33,7 +34,7 @@ export default function TeamFormationScreen() {
 
   // Join tab
   const [joinCode, setJoinCode] = useState('');
-  const [joinName, setJoinName] = useState('');
+  const [joinName, setJoinName] = useState(() => generateName());
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
@@ -199,15 +200,22 @@ export default function TeamFormationScreen() {
 
         {tab === 'create' ? (
           <View>
-            <TextInput
-              mode="outlined"
-              label="Your Name"
-              value={myName}
-              onChangeText={setMyName}
-              placeholder="e.g. Alex"
-              style={styles.input}
-              left={<TextInput.Icon icon="account" />}
-            />
+            <View style={styles.nameRow}>
+              <TextInput
+                mode="outlined"
+                label="Your Name"
+                value={myName}
+                onChangeText={setMyName}
+                style={styles.nameInput}
+                left={<TextInput.Icon icon="account" />}
+              />
+              <IconButton
+                icon="dice-multiple"
+                size={24}
+                onPress={() => setMyName(generateName())}
+                mode="contained-tonal"
+              />
+            </View>
             <TextInput
               mode="outlined"
               label="Team Name"
@@ -293,15 +301,22 @@ export default function TeamFormationScreen() {
               style={styles.input}
               left={<TextInput.Icon icon="key" />}
             />
-            <TextInput
-              mode="outlined"
-              label="Your Name"
-              value={joinName}
-              onChangeText={setJoinName}
-              placeholder="e.g. Jordan"
-              style={styles.input}
-              left={<TextInput.Icon icon="account" />}
-            />
+            <View style={styles.nameRow}>
+              <TextInput
+                mode="outlined"
+                label="Your Name"
+                value={joinName}
+                onChangeText={setJoinName}
+                style={styles.nameInput}
+                left={<TextInput.Icon icon="account" />}
+              />
+              <IconButton
+                icon="dice-multiple"
+                size={24}
+                onPress={() => setJoinName(generateName())}
+                mode="contained-tonal"
+              />
+            </View>
 
             {joinError ? (
               <HelperText type="error" visible>
@@ -337,6 +352,8 @@ const styles = StyleSheet.create({
   sectionLabel: { marginBottom: 4, marginTop: 4 },
   sectionHint: { marginBottom: 12, lineHeight: 18 },
   input: { marginBottom: 12 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  nameInput: { flex: 1 },
   emailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   emailInput: { flex: 1 },
   addBtn: { marginBottom: 16 },
