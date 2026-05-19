@@ -2,6 +2,7 @@ import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService } from '@/db';
 import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { Gyroscope } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
@@ -22,6 +23,9 @@ const TOTAL = MOVEMENTS.length * SETS; // 12
 // Approximate arm-tip jitter in mm from gyro std-dev.
 // gyro rad/s × arm_length 0.6 m × sample_interval 0.016 s × 1000 mm/m ≈ × 9.6
 const JITTER_SCALE = 9.6;
+// Single-sample gyro magnitude (rad/s) above which a jerk is detected
+const HAPTIC_THRESHOLD = 2.5;
+const HAPTIC_COOLDOWN_MS = 350;
 
 type AttemptResult = {
   set: number;
@@ -59,6 +63,7 @@ export default function StretchSpeedTestScreen() {
   const startTimeRef = useRef<number>(0);
   // Reuse one prototype per movement across sets
   const protoIdRef = useRef<Partial<Record<string, string>>>({});
+  const lastHapticRef = useRef(0);
 
   const attemptsDone = setNum * MOVEMENTS.length + movementIdx;
   const progress = attemptsDone / TOTAL;
@@ -74,6 +79,14 @@ export default function StretchSpeedTestScreen() {
         const magnitude = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
         gyroValuesRef.current = [...gyroValuesRef.current, magnitude].slice(-80);
         setWaveform([...gyroValuesRef.current]);
+
+        if (magnitude > HAPTIC_THRESHOLD) {
+          const now = Date.now();
+          if (now - lastHapticRef.current > HAPTIC_COOLDOWN_MS) {
+            lastHapticRef.current = now;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          }
+        }
       });
     }
 
