@@ -1,6 +1,7 @@
 import { useAppTheme } from '@/constants/ContextTheme';
 import type { Prototype } from '@/db';
 import { measurementService, prototypeService, sessionService } from '@/db';
+import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -81,6 +82,7 @@ export default function EarthquakeSummaryScreen() {
       : null;
 
   async function saveReflection() {
+    await uploadBestScore(sessionId);
     await sessionService.complete(sessionId, reflection);
     setCompleted(true);
   }
