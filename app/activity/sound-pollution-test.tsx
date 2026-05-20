@@ -58,20 +58,47 @@ export default function SoundPollutionTestScreen() {
   const [liveDb, setLiveDb] = useState(0);
   const [waveform, setWaveform] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
+  const [gpsReady, setGpsReady] = useState(false);
+  const [gpsError, setGpsError] = useState('');
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const samplesRef = useRef<number[]>([]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const watcherRef = useRef<Location.LocationSubscription | null>(null);
 
   useEffect(() => {
-    // Request on mount so Android shows the permission dialog before first measurement
-    Location.requestForegroundPermissionsAsync().catch(() => {});
+    // Start a continuous location watcher for the lifetime of this screen.
+    // Avoids the cold-start problem: the provider warms up once on mount and
+    // keeps locationRef current. Each measurement just snapshots it instantly —
+    // no per-measurement race or timeout. The Measure button is blocked until
+    // the first fix arrives so recordings always carry a location.
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setGpsError('Location permission denied — measurements won\'t appear on the map.');
+          setGpsReady(true); // unblock the button so the activity isn't completely broken
+          return;
+        }
+        watcherRef.current = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, timeInterval: 2000, distanceInterval: 0 },
+          (pos) => {
+            locationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setGpsReady(true);
+          },
+        );
+      } catch {
+        setGpsError('Location unavailable on this device.');
+        setGpsReady(true); // unblock so the activity can still run without GPS
+      }
+    })();
     return () => {
       countdownRef.current && clearInterval(countdownRef.current);
       stopTimerRef.current && clearTimeout(stopTimerRef.current);
       recordingRef.current?.stopAndUnloadAsync().catch(() => {});
+      watcherRef.current?.remove();
     };
   }, []);
 
@@ -100,6 +127,12 @@ export default function SoundPollutionTestScreen() {
   async function startMeasurement() {
     if (!validateInputs()) return;
 
+    samplesRef.current = [];
+    setWaveform([]);
+    setLiveDb(0);
+
+    // ── Microphone setup ──────────────────────────────────────────────────────
+    // GPS is handled by the continuous watcher started in useEffect — no work needed here.
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -112,17 +145,8 @@ export default function SoundPollutionTestScreen() {
       return;
     }
 
-    samplesRef.current = [];
-    locationRef.current = null;
-    setWaveform([]);
-    setLiveDb(0);
     setMeasuring(true);
     setCountdown(Math.round(MEASURE_DURATION_MS / 1000));
-
-    // Kick off GPS fetch in parallel — 5 s of recording gives it time to get a fix
-    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-      .then(loc => { locationRef.current = { lat: loc.coords.latitude, lng: loc.coords.longitude }; })
-      .catch(() => {});
 
     try {
       const { recording } = await Audio.Recording.createAsync(
@@ -169,6 +193,7 @@ export default function SoundPollutionTestScreen() {
     const maxDb = samples.length > 0 ? Math.max(...samples) : 0;
     const pred = parseFloat(prediction);
 
+    // Snapshot the latest position from the continuous watcher (no await needed).
     const lat = locationRef.current?.lat ?? null;
     const lng = locationRef.current?.lng ?? null;
 
@@ -303,16 +328,18 @@ export default function SoundPollutionTestScreen() {
           </Card>
         )}
 
+        {gpsError ? <HelperText type="error" visible>{gpsError}</HelperText> : null}
+
         {!measuring ? (
           <Button
             mode="contained"
             onPress={startMeasurement}
-            disabled={saving}
-            loading={saving}
+            disabled={saving || !gpsReady}
+            loading={saving || !gpsReady}
             style={styles.button}
-            icon="microphone"
+            icon={gpsReady ? 'microphone' : 'map-marker-radius'}
           >
-            Measure for 5 Seconds
+            {gpsReady ? 'Measure for 5 Seconds' : 'Waiting for GPS...'}
           </Button>
         ) : (
           <Button

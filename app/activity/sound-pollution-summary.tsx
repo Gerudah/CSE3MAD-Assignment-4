@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, DataTable, Divider, Icon, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Circle, Marker } from 'react-native-maps';
 
 function riskColor(db: number): string {
   if (db < 60) return '#4CAF50';
@@ -177,19 +177,27 @@ export default function SoundPollutionSummaryScreen() {
                     scrollEnabled
                     zoomEnabled
                   >
-                    {gpsStats.map((s, i) => (
-                      <Marker
-                        key={i}
-                        coordinate={{ latitude: s.lat!, longitude: s.lng! }}
-                        title={s.name}
-                        description={`${s.avgDb} dB avg · ${riskLabel(s.avgDb)}`}
-                        tracksViewChanges={false}
-                      >
-                        <View style={[styles.mapPin, { backgroundColor: riskColor(s.avgDb) }]}>
-                          <Text style={styles.mapPinText}>{s.avgDb}</Text>
-                        </View>
-                      </Marker>
-                    ))}
+                    {gpsStats.map((s, i) => {
+                      const coord = { latitude: s.lat!, longitude: s.lng! };
+                      const color = riskColor(s.avgDb);
+                      return [
+                        <Circle
+                          key={`circle-${i}`}
+                          center={coord}
+                          radius={5}
+                          fillColor={`${color}45`}
+                          strokeColor={color}
+                          strokeWidth={2}
+                        />,
+                        <Marker
+                          key={`pin-${i}`}
+                          coordinate={coord}
+                          title={s.name}
+                          description={`${s.avgDb} dB avg · ${riskLabel(s.avgDb)}`}
+                          tracksViewChanges={false}
+                        />,
+                      ];
+                    })}
                   </MapView>
                   <Text variant="bodySmall" style={[styles.axisNote, { color: theme.colors.onSurfaceVariant }]}>
                     Pin colour matches noise risk level · tap a pin for details
@@ -338,8 +346,6 @@ const styles = StyleSheet.create({
   axisNote: { textAlign: 'center', marginTop: 6, lineHeight: 16 },
   // Map
   map: { height: 240, borderRadius: 8, marginTop: 4 },
-  mapPin: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 10, borderWidth: 2, borderColor: 'white', minWidth: 36, alignItems: 'center' },
-  mapPinText: { color: 'white', fontSize: 11, fontWeight: '700' },
   riskCol: { paddingLeft: 16 },
   // Table risk cell
   riskCellRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
