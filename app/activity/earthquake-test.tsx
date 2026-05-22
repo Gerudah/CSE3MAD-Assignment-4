@@ -2,12 +2,11 @@ import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService } from '@/db';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Vibration, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth, db } from '../../firebaseConfig';
+import { Area, CartesianChart, Line } from 'victory-native';
 
 export default function EarthquakeTestScreen() {
   const { sessionId, protoId, design, teamName, memberName } =
@@ -110,22 +109,6 @@ export default function EarthquakeTestScreen() {
       'shake_test'
     );
 
-    // Firestore save
-    await addDoc(collection(db, 'earthquakeResults'), {
-      activity: 'Earthquake-Resistant Structure',
-      sessionId,
-      prototypeId: protoId,
-      teamName: String(teamName || 'Unknown Team'),
-      memberName: String(memberName || 'Unknown Member'),
-      designNumber: designNum,
-      movementRangeCm: movementRange,
-      maxDisplacementCm: maxDisplacement,
-      stabilityScore,
-      userId: auth.currentUser?.uid || 'guest',
-      userEmail: auth.currentUser?.email || 'guest',
-      createdAt: serverTimestamp(),
-    });
-
     setSaving(false);
 
     if (designNum < 3) {
@@ -178,17 +161,35 @@ export default function EarthquakeTestScreen() {
             </Text>
 
             <View style={styles.graph}>
-              {displacementValues.map((value, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.bar,
-                    {
-                      height: Math.max(4, value * 8),
-                    },
-                  ]}
-                />
-              ))}
+              <CartesianChart
+                data={
+                  displacementValues.length > 0
+                    ? displacementValues.map((y, x) => ({ x, y }))
+                    : [{ x: 0, y: 0 }]
+                }
+                xKey="x"
+                yKeys={['y']}
+                domain={{ y: [0, displacementValues.length > 0 ? Math.max(35, Math.max(...displacementValues)) : 35] }}
+                xAxis={{ lineWidth: 0, tickCount: 0 }}
+                yAxis={[{ lineWidth: 0, tickCount: 0 }]}
+                padding={5}
+              >
+                {({ points, chartBounds }) => (
+                  <>
+                    <Area
+                      points={points.y}
+                      y0={chartBounds.bottom}
+                      color={theme.colors.primary}
+                      opacity={0.25}
+                    />
+                    <Line
+                      points={points.y}
+                      color={theme.colors.primary}
+                      strokeWidth={2}
+                    />
+                  </>
+                )}
+              </CartesianChart>
             </View>
 
             <Text variant="bodyLarge" style={styles.resultText}>
@@ -240,16 +241,7 @@ const styles = StyleSheet.create({
   },
   graph: {
     height: 160,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
     marginBottom: 16,
-  },
-  bar: {
-    width: 7,
-    marginHorizontal: 2,
-    backgroundColor: '#4CAF50',
-    borderRadius: 4,
   },
   resultText: {
     textAlign: 'center',

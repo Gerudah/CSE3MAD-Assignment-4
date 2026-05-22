@@ -32,6 +32,22 @@ export default function ActivityLayout() {
       <Stack.Screen name="hand-fan-setup" options={{ title: 'Activity Setup' }} />
       <Stack.Screen name="hand-fan-test" options={{ title: 'Hand Fan Test' }} />
       <Stack.Screen name="hand-fan-summary" options={{ title: 'Results' }} />
+
+      <Stack.Screen name="earthquake" options={{ title: 'Earthquake-Resistant Structure' }} />
+      <Stack.Screen name="earthquake-setup" options={{ title: 'Activity Setup' }} />
+      <Stack.Screen name="earthquake-design" options={{ title: 'Design Structure' }} />
+      <Stack.Screen name="earthquake-test" options={{ title: 'Shake Test' }} />
+      <Stack.Screen name="earthquake-summary" options={{ title: 'Results' }} />
+
+      <Stack.Screen name="stretch-speed" options={{ title: 'Human Performance Lab' }} />
+      <Stack.Screen name="stretch-speed-setup" options={{ title: 'Activity Setup' }} />
+      <Stack.Screen name="stretch-speed-test" options={{ title: 'Movement Tests' }} />
+      <Stack.Screen name="stretch-speed-summary" options={{ title: 'Results' }} />
+
+      <Stack.Screen name="sound-pollution" options={{ title: 'Sound Pollution Hunter' }} />
+      <Stack.Screen name="sound-pollution-setup" options={{ title: 'Activity Setup' }} />
+      <Stack.Screen name="sound-pollution-test" options={{ title: 'Noise Measurements' }} />
+      <Stack.Screen name="sound-pollution-summary" options={{ title: 'Results' }} />
     </Stack>
   );
 }

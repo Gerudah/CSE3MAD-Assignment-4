@@ -8,7 +8,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function EarthquakeSetupScreen() {
+export default function StretchSpeedSetupScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { theme } = useAppTheme();
   const { teamName, memberName } = useAuth();
@@ -32,10 +32,9 @@ export default function EarthquakeSetupScreen() {
     setSaving(false);
 
     router.push({
-      pathname: '/activity/earthquake-design',
+      pathname: '/activity/stretch-speed-test',
       params: {
         sessionId,
-        design: '1',
         teamName: teamName ?? '',
         memberName: memberName ?? '',
       },
@@ -50,18 +49,27 @@ export default function EarthquakeSetupScreen() {
         </Text>
 
         <Text variant="bodyLarge" style={styles.subtitle}>
-          Prepare your structure testing area before beginning.
+          Find a clear space where you can swing your arms freely in all directions.
         </Text>
 
         <Text
           variant="bodyMedium"
           style={[styles.note, { backgroundColor: theme.colors.surfaceVariant }]}
         >
-          You will test three designs:{'\n'}
-          {'  '}1. First structure design{'\n'}
-          {'  '}2. Improved structure design{'\n'}
-          {'  '}3. Final structure design{'\n\n'}
-          Place the phone in the centre of the platform before each shake test.
+          You will complete 3 sets of 4 movements:{'\n\n'}
+          {'  '}Set 1: Circle → Sweep → Extension → Figure-8{'\n'}
+          {'  '}Set 2: Circle → Sweep → Extension → Figure-8{'\n'}
+          {'  '}Set 3: Circle → Sweep → Extension → Figure-8{'\n\n'}
+          Hold the phone in one hand and keep a firm grip throughout.
+          The gyroscope measures rotation speed and smoothness.
+        </Text>
+
+        <Text
+          variant="bodyMedium"
+          style={[styles.note, { backgroundColor: theme.colors.surfaceVariant }]}
+        >
+          Safety reminder: Check that there are no people or objects nearby before
+          swinging your arm. Stand in an open space.
         </Text>
 
         <Button
@@ -73,7 +81,7 @@ export default function EarthquakeSetupScreen() {
           contentStyle={styles.buttonContent}
           icon="arrow-right"
         >
-          Start Structure Designs
+          Start Tests
         </Button>
       </ScrollView>
     </SafeAreaView>
@@ -85,7 +93,7 @@ const styles = StyleSheet.create({
   container: { padding: 24 },
   title: { marginBottom: 8, textAlign: 'center' },
   subtitle: { marginBottom: 24, textAlign: 'center' },
-  note: { padding: 14, marginBottom: 24, lineHeight: 22, borderRadius: 8 },
-  button: {},
+  note: { padding: 14, marginBottom: 16, lineHeight: 22, borderRadius: 8 },
+  button: { marginTop: 8 },
   buttonContent: { paddingVertical: 8 },
 });

@@ -6,34 +6,39 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, Divider, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const ACTIVITY_ID = 'earthquake_structure';
+const ACTIVITY_ID = 'sound_pollution';
 
 const EQUIPMENT = [
-  'Cardboard',
-  'Paper',
-  'Scissors',
-  'Sticky tape',
-  'Plastic or paper cups',
-  'Mobile phone with vibration support',
+  'Mobile phone (microphone required)',
+  'Permission to move between school locations',
+];
+
+const LOCATIONS_EXAMPLE = [
+  'Classroom (quiet)',
+  'School hallway (between classes)',
+  'Library',
+  'Cafeteria / canteen',
+  'Outside near traffic',
+  'Outside in a quiet area',
+  'Sports hall or gym',
 ];
 
 const INSTRUCTIONS = [
-  'Build an anti-vibration layer by folding paper or cardboard.',
-  'Place a flat cardboard platform on top.',
-  'Place the phone in the centre of the structure.',
-  'Activate vibration mode in the STEMM App.',
-  'Modify the structure to reduce movement, such as adding pillars or folds.',
-  'Test and compare three different structure designs.',
+  'Choose a location and predict its noise level (dB).',
+  'Hold the phone still and measure for 5 seconds.',
+  'Record at least 3 different locations.',
+  'Compare your predictions to the actual readings.',
+  'Discuss which environments are noise pollution concerns.',
 ];
 
-export default function EarthquakeIntroScreen() {
+export default function SoundPollutionIntroScreen() {
   const { theme } = useAppTheme();
   const { teamId } = useAuth();
 
   async function handleStart() {
     const sessionId = await sessionService.create(teamId ?? 'unknown', ACTIVITY_ID);
     router.push({
-      pathname: '/activity/earthquake-setup',
+      pathname: '/activity/sound-pollution-setup',
       params: { sessionId },
     });
   }
@@ -41,47 +46,50 @@ export default function EarthquakeIntroScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text variant="displaySmall" style={styles.emoji}>🏗️</Text>
+        <Text variant="displaySmall" style={styles.emoji}>🔊</Text>
 
         <Text variant="headlineMedium" style={styles.title}>
-          Earthquake-Resistant Structure
+          Sound Pollution Hunter
         </Text>
 
         <Text variant="bodyMedium" style={[styles.category, { color: theme.colors.onSurfaceVariant }]}>
-          Engineering + Earth Science
+          Engineering Challenges
         </Text>
 
         <View style={styles.chips}>
-          <Chip icon="clock-outline" compact>30 mins</Chip>
-          <Chip icon="signal" compact>Hard</Chip>
+          <Chip icon="clock-outline" compact>15 mins</Chip>
+          <Chip icon="signal" compact>Easy</Chip>
         </View>
 
         <Text variant="bodyLarge" style={styles.description}>
-          Design and test structures that can withstand vibration by measuring phone movement during a simulated earthquake.
+          Use the phone microphone to measure and compare noise levels across
+          different school environments. Identify sources of sound pollution.
         </Text>
 
         <Divider style={styles.divider} />
 
         <Text variant="titleMedium" style={styles.sectionTitle}>Equipment Needed</Text>
+        {EQUIPMENT.map((item, i) => (
+          <Text key={i} variant="bodyMedium" style={styles.listItem}>• {item}</Text>
+        ))}
 
-        {EQUIPMENT.map((item, index) => (
-          <Text key={index} variant="bodyMedium" style={styles.listItem}>
-            • {item}
-          </Text>
+        <Divider style={styles.divider} />
+
+        <Text variant="titleMedium" style={styles.sectionTitle}>Example Locations</Text>
+        {LOCATIONS_EXAMPLE.map((loc, i) => (
+          <Text key={i} variant="bodyMedium" style={styles.listItem}>• {loc}</Text>
         ))}
 
         <Divider style={styles.divider} />
 
         <Text variant="titleMedium" style={styles.sectionTitle}>What You Will Do</Text>
-
-        {INSTRUCTIONS.map((step, index) => (
-          <Text key={index} variant="bodyMedium" style={styles.listItem}>
-            {index + 1}. {step}
-          </Text>
+        {INSTRUCTIONS.map((step, i) => (
+          <Text key={i} variant="bodyMedium" style={styles.listItem}>{i + 1}. {step}</Text>
         ))}
 
         <Text variant="bodyMedium" style={[styles.tip, { backgroundColor: theme.colors.surfaceVariant }]}>
-          Tip: A better structure should reduce phone movement during vibration.
+          Tip: Hold the phone at the same height and distance from noise sources
+          across all measurements for fair comparisons.
         </Text>
 
         <Button

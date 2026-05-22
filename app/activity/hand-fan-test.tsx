@@ -3,7 +3,7 @@ import { uploadBestScore } from '@/services/leaderboard';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import {
     Button,
     Card,
@@ -117,7 +117,8 @@ export default function HandFanTestScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text variant="headlineMedium" style={styles.title}>
           Hand Fan Challenge
         </Text>
@@ -235,6 +236,7 @@ export default function HandFanTestScreen() {
           View Summary
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

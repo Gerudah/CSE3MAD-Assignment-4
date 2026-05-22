@@ -1,28 +1,23 @@
+import { useAuth } from '@/constants/AuthContext';
 import { useAppTheme } from '@/constants/ContextTheme';
 import { sessionService } from '@/db';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BreathingPaceSetupScreen() {
   const { theme } = useAppTheme();
-
-  const [teamName, setTeamName] = useState('');
-  const [memberName, setMemberName] = useState('');
-
-  const valid = teamName.trim().length > 0 && memberName.trim().length > 0;
+  const { teamId, teamName, memberName } = useAuth();
 
   async function handleContinue() {
-    if (!valid) return;
-    const sessionId = await sessionService.create(teamName.trim(), 'breathing_pace');
+    const sessionId = await sessionService.create(teamId ?? 'unknown', 'breathing_pace');
     router.push({
       pathname: '/activity/breathing-pace-test',
       params: {
         sessionId,
-        teamName: teamName.trim(),
-        memberName: memberName.trim(),
+        teamName: teamName ?? '',
+        memberName: memberName ?? '',
       },
     });
   }
@@ -35,45 +30,12 @@ export default function BreathingPaceSetupScreen() {
         </Text>
 
         <Text variant="bodyLarge" style={styles.subtitle}>
-          Enter team and member details before recording breathing data.
+          You will record your breathing rate across three activity conditions.
         </Text>
-
-        <View style={styles.field}>
-          <TextInput
-            label="Team name"
-            mode="outlined"
-            value={teamName}
-            onChangeText={setTeamName}
-            placeholder="e.g. STEMM Squad"
-          />
-
-          <HelperText type="info">
-            This will be saved with your breathing results.
-          </HelperText>
-        </View>
-
-        <View style={styles.field}>
-          <TextInput
-            label="Team member name"
-            mode="outlined"
-            value={memberName}
-            onChangeText={setMemberName}
-            placeholder="e.g. Josh"
-          />
-
-          <HelperText type="info">
-            Each member should complete all three breathing conditions.
-          </HelperText>
-        </View>
 
         <Text
           variant="bodyMedium"
-          style={[
-            styles.note,
-            {
-              backgroundColor: theme.colors.surfaceVariant,
-            },
-          ]}
+          style={[styles.note, { backgroundColor: theme.colors.surfaceVariant }]}
         >
           You will complete three breathing conditions:{'\n'}
           {'  '}1. Resting breathing{'\n'}
@@ -84,7 +46,6 @@ export default function BreathingPaceSetupScreen() {
         <Button
           mode="contained"
           onPress={handleContinue}
-          disabled={!valid}
           style={styles.button}
           contentStyle={styles.buttonContent}
           icon="arrow-right"
@@ -97,31 +58,11 @@ export default function BreathingPaceSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  container: {
-    padding: 24,
-  },
-  title: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  field: {
-    marginBottom: 12,
-  },
-  note: {
-    padding: 14,
-    marginBottom: 24,
-    lineHeight: 22,
-    borderRadius: 8,
-  },
+  safe: { flex: 1 },
+  container: { padding: 24 },
+  title: { marginBottom: 8, textAlign: 'center' },
+  subtitle: { marginBottom: 24, textAlign: 'center' },
+  note: { padding: 14, marginBottom: 24, lineHeight: 22, borderRadius: 8 },
   button: {},
-  buttonContent: {
-    paddingVertical: 8,
-  },
+  buttonContent: { paddingVertical: 8 },
 });

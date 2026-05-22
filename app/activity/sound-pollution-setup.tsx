@@ -8,7 +8,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function EarthquakeSetupScreen() {
+export default function SoundPollutionSetupScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { theme } = useAppTheme();
   const { teamName, memberName } = useAuth();
@@ -17,25 +17,20 @@ export default function EarthquakeSetupScreen() {
   async function handleContinue() {
     setSaving(true);
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (permission.status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        await sessionService.updateLocation(
-          sessionId,
-          location.coords.latitude,
-          location.coords.longitude
-        );
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        await sessionService.updateLocation(sessionId, loc.coords.latitude, loc.coords.longitude);
       }
     } catch {
-      // GPS is helpful but should not block the activity
+      // GPS is helpful but not required
     }
     setSaving(false);
 
     router.push({
-      pathname: '/activity/earthquake-design',
+      pathname: '/activity/sound-pollution-test',
       params: {
         sessionId,
-        design: '1',
         teamName: teamName ?? '',
         memberName: memberName ?? '',
       },
@@ -45,23 +40,19 @@ export default function EarthquakeSetupScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text variant="headlineSmall" style={styles.title}>
-          Before You Start
-        </Text>
+        <Text variant="headlineSmall" style={styles.title}>Before You Start</Text>
 
         <Text variant="bodyLarge" style={styles.subtitle}>
-          Prepare your structure testing area before beginning.
+          You will measure noise levels at multiple locations and compare them.
         </Text>
 
-        <Text
-          variant="bodyMedium"
-          style={[styles.note, { backgroundColor: theme.colors.surfaceVariant }]}
-        >
-          You will test three designs:{'\n'}
-          {'  '}1. First structure design{'\n'}
-          {'  '}2. Improved structure design{'\n'}
-          {'  '}3. Final structure design{'\n\n'}
-          Place the phone in the centre of the platform before each shake test.
+        <Text variant="bodyMedium" style={[styles.note, { backgroundColor: theme.colors.surfaceVariant }]}>
+          How to get accurate readings:{'\n\n'}
+          {'  '}• Hold the phone at arm's length, mic facing the noise source.{'\n'}
+          {'  '}• Stand still for the full 5-second measurement.{'\n'}
+          {'  '}• Measure at least 3 different locations.{'\n'}
+          {'  '}• Try to include one quiet and one loud location.{'\n\n'}
+          The app will request microphone permission when you start measuring.
         </Text>
 
         <Button
@@ -73,7 +64,7 @@ export default function EarthquakeSetupScreen() {
           contentStyle={styles.buttonContent}
           icon="arrow-right"
         >
-          Start Structure Designs
+          Start Measuring
         </Button>
       </ScrollView>
     </SafeAreaView>

@@ -1,11 +1,13 @@
+import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService, sessionService } from '@/db';
 import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Bar, CartesianChart } from 'victory-native';
 
 type Condition = 'Resting' | 'Jogging' | 'Star Jumps';
 
@@ -16,6 +18,7 @@ const CONDITION_PROTO_NUM: Record<Condition, number> = {
 };
 
 export default function BreathingPaceTestScreen() {
+  const { theme } = useAppTheme();
   const { sessionId, teamName, memberName } = useLocalSearchParams<{
     sessionId: string;
     teamName: string;
@@ -99,7 +102,8 @@ export default function BreathingPaceTestScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text variant="headlineMedium" style={styles.title}>
           Breathing Pace Trainer
         </Text>
@@ -119,12 +123,29 @@ export default function BreathingPaceTestScreen() {
             </Text>
 
             <View style={styles.waveform}>
-              {waveform.map((value, index) => (
-                <View
-                  key={index}
-                  style={[styles.waveBar, { height: value * 2 }]}
-                />
-              ))}
+              <CartesianChart
+                data={
+                  waveform.length > 0
+                    ? waveform.map((y, x) => ({ x, y }))
+                    : [{ x: 0, y: 0 }]
+                }
+                xKey="x"
+                yKeys={['y']}
+                domain={{ y: [0, 70] }}
+                xAxis={{ lineWidth: 0, tickCount: 0 }}
+                yAxis={[{ lineWidth: 0, tickCount: 0 }]}
+                padding={4}
+              >
+                {({ points, chartBounds }) => (
+                  <Bar
+                    points={points.y}
+                    chartBounds={chartBounds}
+                    color={theme.colors.primary}
+                    roundedCorners={{ topLeft: 3, topRight: 3 }}
+                    innerPadding={0.2}
+                  />
+                )}
+              </CartesianChart>
             </View>
           </Card.Content>
         </Card>
@@ -190,6 +211,7 @@ export default function BreathingPaceTestScreen() {
           View Summary
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -201,8 +223,7 @@ const styles = StyleSheet.create({
   subtitle: { textAlign: 'center', marginBottom: 20 },
   card: { marginBottom: 20 },
   bpm: { textAlign: 'center', marginVertical: 20 },
-  waveform: { flexDirection: 'row', alignItems: 'flex-end', height: 120, marginTop: 10 },
-  waveBar: { width: 8, marginHorizontal: 2, backgroundColor: '#4CAF50' },
+  waveform: { height: 120, marginTop: 10 },
   conditionButtons: { marginBottom: 20 },
   button: { marginBottom: 10 },
   input: { marginBottom: 20 },
