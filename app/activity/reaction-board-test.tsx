@@ -2,13 +2,7 @@ import { measurementService, prototypeService } from '@/db';
 import { uploadBestScore } from '@/services/leaderboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  GestureResponderEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -53,22 +47,19 @@ export default function ReactionBoardScreen() {
   const [message, setMessage] = useState('Choose a phase, then start the test.');
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Tracks created prototype IDs per phase label to avoid duplicates
   const phaseProtoRef = useRef<Record<string, string>>({});
 
-  // Capture start time after the "TAP NOW!" render, not inside the timeout
   useEffect(() => {
     if (gameState === 'tap') {
       startTimeRef.current = Date.now();
     }
   }, [gameState]);
 
-  // Capture target start time after the target position re-renders
   useEffect(() => {
     if (tracingStarted) {
       targetStartTimeRef.current = Date.now();
     }
-  }, [targetX, targetY]);
+  }, [targetX, targetY, tracingStarted]);
 
   const calculateAverage = (attempts: number[]) => {
     if (attempts.length === 0) return null;
@@ -93,15 +84,22 @@ export default function ReactionBoardScreen() {
     accuracy?: number | null
   ) => {
     let protoId = phaseProtoRef.current[phaseName];
+
     if (!protoId) {
       protoId = await prototypeService.create(
         sessionId,
         PHASE_PROTO_NUM[phaseName] ?? 1,
         phaseName
       );
-      phaseProtoRef.current = { ...phaseProtoRef.current, [phaseName]: protoId };
+
+      phaseProtoRef.current = {
+        ...phaseProtoRef.current,
+        [phaseName]: protoId,
+      };
     }
+
     await measurementService.add(protoId, 'reaction_time_ms', value, 'ms', phaseName);
+
     if (accuracy != null) {
       await measurementService.add(protoId, 'tracing_accuracy_pct', accuracy, '%', phaseName);
     }
@@ -132,7 +130,7 @@ export default function ReactionBoardScreen() {
     } else if (newPhase === 'nonDominant') {
       setMessage('Phase 2: Repeat the test with your non-dominant hand.');
     } else {
-      setMessage('Phase 3: Tap the moving target as quickly as possible.');
+      setMessage('Phase 3: Trace the moving target as accurately as possible.');
     }
   };
 
@@ -142,6 +140,7 @@ export default function ReactionBoardScreen() {
     setMessage('Wait for it...');
 
     const randomDelay = Math.floor(Math.random() * 3000) + 2000;
+
     timeoutRef.current = setTimeout(() => {
       setGameState('tap');
       setMessage('TAP NOW!');
@@ -151,6 +150,7 @@ export default function ReactionBoardScreen() {
   const handleReactionTap = async () => {
     if (gameState === 'waiting') {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
       setGameState('ready');
       setMessage('Too early! Press start and try again.');
       return;
@@ -174,6 +174,7 @@ export default function ReactionBoardScreen() {
 
   const moveTarget = () => {
     const maxPosition = BOARD_SIZE - TARGET_SIZE;
+
     setTargetX(Math.floor(Math.random() * maxPosition));
     setTargetY(Math.floor(Math.random() * maxPosition));
   };
@@ -183,39 +184,45 @@ export default function ReactionBoardScreen() {
     setTracingAttempts(0);
     setTracingHits(0);
     setTracingDelays([]);
-    setMessage('Phase 3 started. Tap the target five times.');
+
+    setMessage('Phase 3 started. Keep your finger tracing the moving target.');
+
     moveTarget();
   };
 
-  const handleBoardPress = async (event: GestureResponderEvent) => {
+  const handleTraceMove = async (locationX: number, locationY: number) => {
     if (!tracingStarted || phase !== 'tracing') return;
 
-    const { locationX, locationY } = event.nativeEvent;
     const centerX = targetX + TARGET_SIZE / 2;
     const centerY = targetY + TARGET_SIZE / 2;
-    const distance = Math.sqrt((locationX - centerX) ** 2 + (locationY - centerY) ** 2);
-    const hit = distance <= TARGET_SIZE / 2;
 
+    const distance = Math.sqrt(
+      (locationX - centerX) ** 2 + (locationY - centerY) ** 2
+    );
+
+    const hit = distance <= TARGET_SIZE / 2;
     const delay = Date.now() - targetStartTimeRef.current;
+
     const newAttempts = tracingAttempts + 1;
     const newHits = hit ? tracingHits + 1 : tracingHits;
     const newDelays = hit ? [...tracingDelays, delay] : tracingDelays;
+
     const newAccuracy = Math.round((newHits / newAttempts) * 100);
 
     setTracingAttempts(newAttempts);
     setTracingHits(newHits);
     setTracingDelays(newDelays);
 
-    await saveResult('Tracing Challenge', delay, 'ms delay', newAccuracy);
-
-    if (newAttempts >= 5) {
-      setTracingStarted(false);
-      setMessage(`Tracing complete. Accuracy: ${newAccuracy}%`);
-      return;
+    if (hit) {
+      await saveResult('Tracing Challenge', delay, 'ms delay', newAccuracy);
+      setMessage(`Tracking success! Accuracy: ${newAccuracy}%`);
+      moveTarget();
     }
 
-    setMessage(hit ? `Hit! Delay: ${delay} ms` : 'Missed! Try again.');
-    moveTarget();
+    if (newAttempts >= 20) {
+      setTracingStarted(false);
+      setMessage(`Tracing complete. Accuracy: ${newAccuracy}%`);
+    }
   };
 
   const resetAttempts = () => {
@@ -226,11 +233,14 @@ export default function ReactionBoardScreen() {
     setReactionTime(null);
     setGameState('ready');
     setPhase('dominant');
+
     setTracingStarted(false);
     setTracingAttempts(0);
     setTracingHits(0);
     setTracingDelays([]);
+
     phaseProtoRef.current = {};
+
     setMessage('Choose a phase, then start the test.');
   };
 
@@ -250,15 +260,27 @@ export default function ReactionBoardScreen() {
         </Text>
 
         <View style={styles.phaseButtons}>
-          <Button mode={phase === 'dominant' ? 'contained' : 'outlined'} onPress={() => changePhase('dominant')} style={styles.phaseButton}>
+          <Button
+            mode={phase === 'dominant' ? 'contained' : 'outlined'}
+            onPress={() => changePhase('dominant')}
+            style={styles.phaseButton}
+          >
             Phase 1: Dominant
           </Button>
 
-          <Button mode={phase === 'nonDominant' ? 'contained' : 'outlined'} onPress={() => changePhase('nonDominant')} style={styles.phaseButton}>
+          <Button
+            mode={phase === 'nonDominant' ? 'contained' : 'outlined'}
+            onPress={() => changePhase('nonDominant')}
+            style={styles.phaseButton}
+          >
             Phase 2: Non-Dominant
           </Button>
 
-          <Button mode={phase === 'tracing' ? 'contained' : 'outlined'} onPress={() => changePhase('tracing')} style={styles.phaseButton}>
+          <Button
+            mode={phase === 'tracing' ? 'contained' : 'outlined'}
+            onPress={() => changePhase('tracing')}
+            style={styles.phaseButton}
+          >
             Phase 3: Tracing
           </Button>
         </View>
@@ -288,26 +310,56 @@ export default function ReactionBoardScreen() {
 
         {phase !== 'tracing' ? (
           <View style={styles.buttonGroup}>
-            <Button mode="contained" onPress={startReactionTest} disabled={gameState === 'waiting' || gameState === 'tap'} style={styles.button}>
+            <Button
+              mode="contained"
+              onPress={startReactionTest}
+              disabled={gameState === 'waiting' || gameState === 'tap'}
+              style={styles.button}
+            >
               Start Test
             </Button>
 
-            <Button mode="contained-tonal" onPress={handleReactionTap} disabled={gameState === 'ready' || gameState === 'result'} style={styles.tapButton}>
+            <Button
+              mode="contained-tonal"
+              onPress={handleReactionTap}
+              disabled={gameState === 'ready' || gameState === 'result'}
+              style={styles.tapButton}
+            >
               Tap Button
             </Button>
           </View>
         ) : (
           <View style={styles.buttonGroup}>
-            <Button mode="contained" onPress={startTracing} style={styles.button}>
+            <Button
+              mode="contained"
+              onPress={startTracing}
+              style={styles.button}
+            >
               Start Tracing Challenge
             </Button>
 
-            <Pressable onPress={handleBoardPress} style={styles.board}>
-              <View style={[styles.target, { left: targetX, top: targetY }]} />
-            </Pressable>
+            <View
+              style={styles.board}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderMove={(event) => {
+                const { locationX, locationY } = event.nativeEvent;
+                handleTraceMove(locationX, locationY);
+              }}
+            >
+              <View
+                style={[
+                  styles.target,
+                  {
+                    left: targetX,
+                    top: targetY,
+                  },
+                ]}
+              />
+            </View>
 
             <Text variant="bodyMedium" style={styles.centerText}>
-              Attempts: {tracingAttempts}/5 | Hits: {tracingHits}
+              Tracking Points: {tracingAttempts}/20 | Hits: {tracingHits}
             </Text>
           </View>
         )}
@@ -322,17 +374,46 @@ export default function ReactionBoardScreen() {
               Results Comparison
             </Text>
 
-            <Text variant="titleMedium" style={styles.sectionTitle}>Dominant Hand</Text>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Dominant Hand
+            </Text>
             <Text>Attempts: {dominantAttempts.length}</Text>
-            <Text>Average: {dominantAverage !== null ? `${dominantAverage} ms` : 'No data'}</Text>
-            <Text>Best: {calculateBest(dominantAttempts) !== null ? `${calculateBest(dominantAttempts)} ms` : 'No data'}</Text>
-            <Text>Worst: {calculateWorst(dominantAttempts) !== null ? `${calculateWorst(dominantAttempts)} ms` : 'No data'}</Text>
+            <Text>
+              Average: {dominantAverage !== null ? `${dominantAverage} ms` : 'No data'}
+            </Text>
+            <Text>
+              Best:{' '}
+              {calculateBest(dominantAttempts) !== null
+                ? `${calculateBest(dominantAttempts)} ms`
+                : 'No data'}
+            </Text>
+            <Text>
+              Worst:{' '}
+              {calculateWorst(dominantAttempts) !== null
+                ? `${calculateWorst(dominantAttempts)} ms`
+                : 'No data'}
+            </Text>
 
-            <Text variant="titleMedium" style={styles.sectionTitle}>Non-Dominant Hand</Text>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Non-Dominant Hand
+            </Text>
             <Text>Attempts: {nonDominantAttempts.length}</Text>
-            <Text>Average: {nonDominantAverage !== null ? `${nonDominantAverage} ms` : 'No data'}</Text>
-            <Text>Best: {calculateBest(nonDominantAttempts) !== null ? `${calculateBest(nonDominantAttempts)} ms` : 'No data'}</Text>
-            <Text>Worst: {calculateWorst(nonDominantAttempts) !== null ? `${calculateWorst(nonDominantAttempts)} ms` : 'No data'}</Text>
+            <Text>
+              Average:{' '}
+              {nonDominantAverage !== null ? `${nonDominantAverage} ms` : 'No data'}
+            </Text>
+            <Text>
+              Best:{' '}
+              {calculateBest(nonDominantAttempts) !== null
+                ? `${calculateBest(nonDominantAttempts)} ms`
+                : 'No data'}
+            </Text>
+            <Text>
+              Worst:{' '}
+              {calculateWorst(nonDominantAttempts) !== null
+                ? `${calculateWorst(nonDominantAttempts)} ms`
+                : 'No data'}
+            </Text>
 
             {dominantAverage !== null && nonDominantAverage !== null && (
               <Text variant="bodyLarge" style={styles.comparison}>
@@ -340,10 +421,17 @@ export default function ReactionBoardScreen() {
               </Text>
             )}
 
-            <Text variant="titleMedium" style={styles.sectionTitle}>Tracing Challenge</Text>
-            <Text>Attempts: {tracingAttempts}</Text>
-            <Text>Accuracy: {tracingAccuracy !== null ? `${tracingAccuracy}%` : 'No data'}</Text>
-            <Text>Average Delay: {tracingAverageDelay !== null ? `${tracingAverageDelay} ms` : 'No data'}</Text>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Tracing Challenge
+            </Text>
+            <Text>Tracking Points: {tracingAttempts}</Text>
+            <Text>
+              Accuracy: {tracingAccuracy !== null ? `${tracingAccuracy}%` : 'No data'}
+            </Text>
+            <Text>
+              Average Delay:{' '}
+              {tracingAverageDelay !== null ? `${tracingAverageDelay} ms` : 'No data'}
+            </Text>
           </Card.Content>
         </Card>
 
@@ -351,24 +439,43 @@ export default function ReactionBoardScreen() {
           mode="contained"
           style={styles.button}
           onPress={async () => {
-            try { await uploadBestScore(sessionId); } catch { /* non-fatal */ }
+            try {
+              await uploadBestScore(sessionId);
+            } catch {
+              // non-fatal
+            }
+
             router.push({
               pathname: '/activity/reaction-board-summary',
               params: {
                 teamName: team,
                 memberName: member,
                 dominantAverage: dominantAverage !== null ? String(dominantAverage) : '',
-                dominantBest: calculateBest(dominantAttempts) !== null ? String(calculateBest(dominantAttempts)) : '',
-                dominantWorst: calculateWorst(dominantAttempts) !== null ? String(calculateWorst(dominantAttempts)) : '',
-                nonDominantAverage: nonDominantAverage !== null ? String(nonDominantAverage) : '',
-                nonDominantBest: calculateBest(nonDominantAttempts) !== null ? String(calculateBest(nonDominantAttempts)) : '',
-                nonDominantWorst: calculateWorst(nonDominantAttempts) !== null ? String(calculateWorst(nonDominantAttempts)) : '',
+                dominantBest:
+                  calculateBest(dominantAttempts) !== null
+                    ? String(calculateBest(dominantAttempts))
+                    : '',
+                dominantWorst:
+                  calculateWorst(dominantAttempts) !== null
+                    ? String(calculateWorst(dominantAttempts))
+                    : '',
+                nonDominantAverage:
+                  nonDominantAverage !== null ? String(nonDominantAverage) : '',
+                nonDominantBest:
+                  calculateBest(nonDominantAttempts) !== null
+                    ? String(calculateBest(nonDominantAttempts))
+                    : '',
+                nonDominantWorst:
+                  calculateWorst(nonDominantAttempts) !== null
+                    ? String(calculateWorst(nonDominantAttempts))
+                    : '',
                 difference:
                   dominantAverage !== null && nonDominantAverage !== null
                     ? String(Math.abs(dominantAverage - nonDominantAverage))
                     : '',
                 tracingAccuracy: tracingAccuracy !== null ? String(tracingAccuracy) : '',
-                tracingAverageDelay: tracingAverageDelay !== null ? String(tracingAverageDelay) : '',
+                tracingAverageDelay:
+                  tracingAverageDelay !== null ? String(tracingAverageDelay) : '',
               },
             });
           }}

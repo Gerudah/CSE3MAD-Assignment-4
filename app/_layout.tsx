@@ -134,6 +134,11 @@ function RootStack() {
   const { theme, isDark } = useAppTheme();
   const { loading, findingTeam } = useAuth();
 
+  useEffect(() => {
+    requestNotificationPermission();
+    registerBackgroundSyncTask();
+  }, []);
+
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -141,9 +146,13 @@ function RootStack() {
       <Stack
         screenOptions={{
           headerTitleAlign: 'center',
-          headerStyle: { backgroundColor: theme.colors.surface },
+          headerStyle: {
+            backgroundColor: theme.colors.surface,
+          },
           headerTintColor: theme.colors.onSurface,
-          headerTitleStyle: { color: theme.colors.onSurface },
+          headerTitleStyle: {
+            color: theme.colors.onSurface,
+          },
         }}
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />

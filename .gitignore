@@ -34,6 +34,7 @@ yarn-error.*
 .env*
 .env*.local
 firebase.js
+local.properties
 .env
 
 # typescript
