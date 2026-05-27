@@ -1,4 +1,4 @@
-import AdBanner from '@/components/AdBanner.web';
+import AdBanner from '@/components/AdBanner';
 import { useAppTheme } from '@/constants/ContextTheme';
 import { getDb } from '@/db';
 import { db as firestoreDb } from '@/firebaseConfig';

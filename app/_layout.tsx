@@ -1,5 +1,7 @@
 import { AuthProvider, useAuth } from '@/constants/AuthContext';
 import { ThemeProvider, useAppTheme } from '@/constants/ContextTheme';
+import { registerBackgroundSyncTask } from '@/services/backgroundSync';
+import { requestNotificationPermission } from '@/services/notifications';
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';

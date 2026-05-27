@@ -58,7 +58,14 @@
           "androidFineLocationPermission": "Allow $(PRODUCT_NAME) to access your location to tag noise measurements on the map. No location data leaves your device"
         }
       ],
-      "expo-av"
+      "expo-av",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

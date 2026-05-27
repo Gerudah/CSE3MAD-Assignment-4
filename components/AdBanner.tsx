@@ -1,26 +1,21 @@
-import { Platform, StyleSheet, View } from 'react-native';
-import {
-  BannerAd,
-  BannerAdSize,
-  TestIds,
-} from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { StyleSheet, View } from 'react-native';
 
-const adUnitId =
-  process.env.EXPO_PUBLIC_ADMOB_BANNER_ID || TestIds.BANNER;
+const adUnitId = TestIds.BANNER;
 
 export default function AdBanner() {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <BannerAd
         unitId={adUnitId}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        size={BannerAdSize.LARGE_ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,
+          networkExtras:{
+            collapsible: 'bottom',
+          }
         }}
+
       />
     </View>
   );
