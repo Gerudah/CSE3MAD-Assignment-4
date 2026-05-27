@@ -1,4 +1,4 @@
-import AdBanner from '@/components/AdBanner.web';
+import AdBanner from '@/components/AdBanner';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
