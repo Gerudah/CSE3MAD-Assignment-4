@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, inMemoryPersistence, initializeAuth } from 'firebase/auth';
+import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -18,11 +19,12 @@ const app =
     ? initializeApp(firebaseConfig)
     : getApps()[0];
 
-// initializeAuth with inMemoryPersistence avoids the AsyncStorage crash on React Native.
+// getReactNativePersistence keeps the Firebase token in AsyncStorage so the
+// 12-hour session window in AuthContext survives app restarts.
 // Try/catch handles hot reloads where auth is already initialized.
 function getAuthInstance() {
   try {
-    return initializeAuth(app, { persistence: inMemoryPersistence });
+    return initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
   } catch {
     return getAuth(app);
   }

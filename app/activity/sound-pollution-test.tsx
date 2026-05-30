@@ -1,7 +1,7 @@
-// Requires: npx expo install expo-av react-native-maps
+// Requires: npx expo install expo-audio react-native-maps
 import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService } from '@/db';
-import { Audio } from 'expo-av';
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -15,7 +15,7 @@ import { CartesianChart, Line } from 'victory-native';
 
 const DB_OFFSET = 90;
 const MEASURE_DURATION_MS = 5000;
-const METER_INTERVAL_MS = 16;
+const METER_INTERVAL_MS = 100;
 const MIN_LOCATIONS = 3;
 
 const PRESET_LOCATIONS = [
@@ -61,8 +61,10 @@ export default function SoundPollutionTestScreen() {
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsError, setGpsError] = useState('');
 
-  const recordingRef = useRef<Audio.Recording | null>(null);
   const samplesRef = useRef<number[]>([]);
+  const emaRef = useRef(0);
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const recorderState = useAudioRecorderState(recorder, METER_INTERVAL_MS);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -97,10 +99,21 @@ export default function SoundPollutionTestScreen() {
     return () => {
       countdownRef.current && clearInterval(countdownRef.current);
       stopTimerRef.current && clearTimeout(stopTimerRef.current);
-      recordingRef.current?.stopAndUnloadAsync().catch(() => {});
+      recorder.stop().catch(() => {});
       watcherRef.current?.remove();
     };
-  }, []);
+  }, [recorder]);
+
+  useEffect(() => {
+    if (!recorderState.isRecording || recorderState.metering === undefined) return;
+    const raw = Math.max(30, recorderState.metering + DB_OFFSET);
+    emaRef.current = emaRef.current === 0 ? raw : 0.3 * raw + 0.7 * emaRef.current;
+    const spl = Math.round(raw);
+    const smoothed = Math.round(emaRef.current);
+    setLiveDb(smoothed);
+    samplesRef.current.push(spl);
+    setWaveform(prev => [...prev, smoothed].slice(-120));
+  }, [recorderState]);
 
   const locationName = selectedLocation === 'Custom'
     ? customLocation.trim()
@@ -128,18 +141,19 @@ export default function SoundPollutionTestScreen() {
     if (!validateInputs()) return;
 
     samplesRef.current = [];
+    emaRef.current = 0;
     setWaveform([]);
     setLiveDb(0);
 
     // ── Microphone setup ──────────────────────────────────────────────────────
     // GPS is handled by the continuous watcher started in useEffect — no work needed here.
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
         setInputError('Microphone permission denied. Please enable it in Settings.');
         return;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
     } catch {
       setInputError('Could not access microphone.');
       return;
@@ -149,19 +163,8 @@ export default function SoundPollutionTestScreen() {
     setCountdown(Math.round(MEASURE_DURATION_MS / 1000));
 
     try {
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        (status) => {
-          if (status.isRecording && status.metering !== undefined) {
-            const spl = Math.max(30, Math.round(status.metering + DB_OFFSET));
-            setLiveDb(spl);
-            samplesRef.current.push(spl);
-            setWaveform(prev => [...prev, spl].slice(-120));
-          }
-        },
-        METER_INTERVAL_MS,
-      );
-      recordingRef.current = recording;
+      await recorder.prepareToRecordAsync();
+      recorder.record();
     } catch {
       setMeasuring(false);
       setInputError('Failed to start recording. Check microphone access.');
@@ -182,9 +185,8 @@ export default function SoundPollutionTestScreen() {
     setSaving(true);
 
     try {
-      await recordingRef.current?.stopAndUnloadAsync();
+      await recorder.stop();
     } catch { /* already stopped */ }
-    recordingRef.current = null;
 
     const samples = samplesRef.current;
     const avgDb = samples.length > 0

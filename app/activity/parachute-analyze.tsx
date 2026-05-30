@@ -24,6 +24,7 @@ export default function ParachuteAnalyzeScreen() {
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [releaseTime, setReleaseTime] = useState<number | null>(null);
   const [impactTime, setImpactTime] = useState<number | null>(null);
   const [stopTime, setStopTime] = useState<number | null>(null);
@@ -35,20 +36,29 @@ export default function ParachuteAnalyzeScreen() {
   });
 
   useEffect(() => {
-    const timeSub = player.addListener('timeUpdate', ({ currentTime: t }) => {
-      setCurrentTime(t);
-      currentTimeRef.current = t;
-    });
     const statusSub = player.addListener('statusChange', ({ status }) => {
       if (status === 'readyToPlay' && player.duration) {
         setDuration(player.duration);
       }
     });
+    const playingSub = player.addListener('playingChange', ({ isPlaying: p }) => {
+      setIsPlaying(p);
+    });
     return () => {
-      timeSub.remove();
       statusSub.remove();
+      playingSub.remove();
     };
   }, [player]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = setInterval(() => {
+      const t = player.currentTime;
+      setCurrentTime(t);
+      currentTimeRef.current = t;
+    }, 100);
+    return () => clearInterval(id);
+  }, [isPlaying, player]);
 
   function step(delta: number) {
     const maxTime = duration > 0 ? duration : Infinity;
@@ -112,27 +122,31 @@ export default function ParachuteAnalyzeScreen() {
         <VideoView
           player={player}
           style={styles.video}
-          allowsFullscreen
+          nativeControls={false}
+          allowsFullscreen={false}
           allowsPictureInPicture={false}
-          nativeControls
         />
 
         {/* Fine-step controls */}
         <View style={styles.stepRow}>
-          <Button compact mode="outlined" onPress={() => step(-0.5)} style={styles.stepBtn}>
-            −0.5s
-          </Button>
-          <Button compact mode="outlined" onPress={() => step(-0.1)} style={styles.stepBtn}>
-            −0.1s
-          </Button>
-          <Text variant="titleMedium" style={styles.timeDisplay}>
-            {fmt(currentTime)}
-          </Text>
-          <Button compact mode="outlined" onPress={() => step(0.1)} style={styles.stepBtn}>
-            +0.1s
-          </Button>
-          <Button compact mode="outlined" onPress={() => step(0.5)} style={styles.stepBtn}>
-            +0.5s
+          <Button compact mode="outlined" onPress={() => step(-0.5)} style={styles.stepBtn}>−0.5s</Button>
+          <Button compact mode="outlined" onPress={() => step(-0.1)} style={styles.stepBtn}>−0.1s</Button>
+          <Button compact mode="outlined" onPress={() => step(-0.05)} style={styles.stepBtn}>−0.05s</Button>
+        </View>
+        <Text variant="titleMedium" style={styles.timeDisplay}>{fmt(currentTime)}</Text>
+        <View style={styles.stepRow}>
+          <Button compact mode="outlined" onPress={() => step(0.05)} style={styles.stepBtn}>+0.05s</Button>
+          <Button compact mode="outlined" onPress={() => step(0.1)} style={styles.stepBtn}>+0.1s</Button>
+          <Button compact mode="outlined" onPress={() => step(0.5)} style={styles.stepBtn}>+0.5s</Button>
+        </View>
+        <View style={styles.playRow}>
+          <Button
+            mode="contained"
+            icon={isPlaying ? 'pause' : 'play'}
+            onPress={() => isPlaying ? player.pause() : player.play()}
+            style={styles.playBtn}
+          >
+            {isPlaying ? 'Pause' : 'Play'}
           </Button>
         </View>
 
@@ -267,7 +281,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   stepBtn: { flex: 1 },
-  timeDisplay: { flex: 1.2, textAlign: 'center' },
+  timeDisplay: { textAlign: 'center', marginVertical: 4 },
   divider: { marginVertical: 16 },
   markerTitle: { marginBottom: 10 },
   markers: { gap: 10 },
@@ -275,6 +289,8 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   resultCard: { flex: 1 },
   resultVal: { textAlign: 'center', marginTop: 4, marginBottom: 2 },
+  playRow: { alignItems: 'center', marginBottom: 4 },
+  playBtn: { width: '50%' },
   actions: { gap: 8, marginTop: 16 },
   saveBtn: {},
   saveBtnContent: { paddingVertical: 8 },
