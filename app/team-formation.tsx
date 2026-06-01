@@ -103,7 +103,7 @@ export default function TeamFormationScreen() {
   // ── Success state: show the join code ────────────────────────────────────────
   if (createdCode) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView testID="team-created-screen" style={[styles.safe, { backgroundColor: theme.colors.background }]}>
         <ScrollView contentContainerStyle={styles.container}>
           <Text variant="headlineMedium" style={styles.title}>
             Team Created!
@@ -127,6 +127,7 @@ export default function TeamFormationScreen() {
                 JOIN CODE
               </Text>
               <Text
+                testID="join-code-display"
                 variant="displaySmall"
                 style={[styles.codeText, { color: theme.colors.primary }]}
               >
@@ -152,6 +153,7 @@ export default function TeamFormationScreen() {
           </Button>
 
           <Button
+            testID="continue-to-app-btn"
             mode="outlined"
             onPress={() => router.replace('/(tabs)')}
             style={styles.button}
@@ -167,7 +169,7 @@ export default function TeamFormationScreen() {
 
   // ── Main form ─────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView testID="team-formation-screen" style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
@@ -202,6 +204,7 @@ export default function TeamFormationScreen() {
           <View>
             <View style={styles.nameRow}>
               <TextInput
+                testID="creator-name-input"
                 mode="outlined"
                 label="Your Name"
                 value={myName}
@@ -217,6 +220,7 @@ export default function TeamFormationScreen() {
               />
             </View>
             <TextInput
+              testID="team-name-input"
               mode="outlined"
               label="Team Name"
               value={teamName}
@@ -277,6 +281,7 @@ export default function TeamFormationScreen() {
             ) : null}
 
             <Button
+              testID="create-team-btn"
               mode="contained"
               onPress={handleCreate}
               loading={creating}
@@ -291,6 +296,7 @@ export default function TeamFormationScreen() {
         ) : (
           <View>
             <TextInput
+              testID="join-code-input"
               mode="outlined"
               label="Join Code"
               value={joinCode}
@@ -303,6 +309,7 @@ export default function TeamFormationScreen() {
             />
             <View style={styles.nameRow}>
               <TextInput
+                testID="joiner-name-input"
                 mode="outlined"
                 label="Your Name"
                 value={joinName}
@@ -325,6 +332,7 @@ export default function TeamFormationScreen() {
             ) : null}
 
             <Button
+              testID="join-team-btn"
               mode="contained"
               onPress={handleJoin}
               loading={joining}

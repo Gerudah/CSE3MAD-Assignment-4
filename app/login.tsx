@@ -58,7 +58,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView testID="login-screen" style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior="padding"
@@ -97,6 +97,7 @@ export default function LoginScreen() {
             ) : null}
 
             <TextInput
+              testID="email-input"
               mode="outlined"
               label="Email"
               value={email}
@@ -109,6 +110,7 @@ export default function LoginScreen() {
             />
 
             <TextInput
+              testID="password-input"
               mode="outlined"
               label="Password"
               value={password}
@@ -127,6 +129,7 @@ export default function LoginScreen() {
 
             {mode === 'signup' && (
               <TextInput
+                testID="confirm-password-input"
                 mode="outlined"
                 label="Confirm Password"
                 value={confirmPassword}
@@ -139,6 +142,7 @@ export default function LoginScreen() {
             )}
 
             <Button
+              testID="auth-submit-btn"
               mode="contained"
               onPress={handleSubmit}
               loading={loading}
@@ -149,7 +153,7 @@ export default function LoginScreen() {
               {mode === 'signin' ? 'Sign In' : 'Create Account'}
             </Button>
 
-            <Button mode="text" onPress={toggleMode}>
+            <Button testID="toggle-auth-mode-btn" mode="text" onPress={toggleMode}>
               {mode === 'signin'
                 ? "Don't have an account? Sign up"
                 : 'Already have an account? Sign in'}
