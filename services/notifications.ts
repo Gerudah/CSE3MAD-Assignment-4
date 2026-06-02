@@ -30,7 +30,8 @@ export async function scheduleChallengeReminder(secondsBeforeEnd: number) {
       sound: true,
     },
     trigger: {
-      seconds: secondsBeforeEnd,
-    },
+  type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+  seconds: secondsBeforeEnd,
+},
   });
 }
