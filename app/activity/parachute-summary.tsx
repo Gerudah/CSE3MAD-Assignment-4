@@ -2,6 +2,7 @@ import { useAppTheme } from '@/constants/ContextTheme';
 import { measurementService, prototypeService } from '@/db';
 import { uploadBestScore } from '@/services/leaderboard';
 import type { Prototype } from '@/db';
+import { calcPhysics, type Physics } from '@/utils/parachutePhysics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -13,30 +14,6 @@ type ProtoResult = {
   dropTime: number | null;
   contactTime: number | null;
 };
-
-type Physics = {
-  velocity: number;
-  acceleration: number;
-  weight: number;
-  netForce: number;
-  dragForce: number;
-  gForce: number;
-};
-
-function calcPhysics(
-  height: number,
-  mass: number,
-  dropTime: number,
-  contactTime: number
-): Physics {
-  const velocity = height / dropTime;
-  const acceleration = velocity / dropTime;
-  const weight = mass * 9.8;
-  const netForce = mass * acceleration;
-  const dragForce = Math.max(0, weight - netForce);
-  const gForce = (velocity / contactTime) / 9.8;
-  return { velocity, acceleration, weight, netForce, dragForce, gForce };
-}
 
 function getLabel(protoNum: number): string {
   if (protoNum === 1) return 'Baseline (No Parachute)';
