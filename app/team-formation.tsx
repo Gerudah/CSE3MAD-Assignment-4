@@ -194,8 +194,8 @@ export default function TeamFormationScreen() {
           value={tab}
           onValueChange={v => setTab(v as 'create' | 'join')}
           buttons={[
-            { value: 'create', label: 'Create Team', icon: 'plus-circle-outline' },
-            { value: 'join', label: 'Join with Code', icon: 'key-outline' },
+            { value: 'create', label: 'Create Team',    icon: 'plus-circle-outline', testID: 'create-tab-btn' },
+            { value: 'join',   label: 'Join with Code', icon: 'key-outline',          testID: 'join-tab-btn'   },
           ]}
           style={styles.tabs}
         />

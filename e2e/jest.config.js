@@ -1,6 +1,6 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  testEnvironment: 'node',
+  testEnvironment: 'detox/runners/jest/testEnvironment',
   testRunner: 'jest-circus/runner',
   testTimeout: 120000,
   testMatch: ['<rootDir>/**/*.e2e.js'],

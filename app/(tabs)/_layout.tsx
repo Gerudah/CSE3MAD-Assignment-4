@@ -24,6 +24,7 @@ const MyComponent = () => {
 
   return (
     <BottomNavigation
+      testID="bottom-tab-bar"
       navigationState={{ index, routes }}
       onIndexChange={setIndex}
       renderScene={renderScene}

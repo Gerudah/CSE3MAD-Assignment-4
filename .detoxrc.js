@@ -3,7 +3,7 @@
  *
  * Prerequisites:
  *   1. Build the dev-client APK first:
- *        cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug
+ *        cd android && gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug
  *        (or use: npx expo run:android --configuration debug)
  *   2. Start an Android emulator (AVD name must match device.avdName below).
  *   3. Run tests:  npm run test:e2e
@@ -24,7 +24,7 @@ module.exports = {
       type: 'android.apk',
       binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
       build:
-        'cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug',
+        'cd android && gradlew.bat app:assembleDebug app:assembleAndroidTest -DtestBuildType=debug',
       testBinaryPath:
         'android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk',
     },
@@ -33,7 +33,7 @@ module.exports = {
   devices: {
     emulator: {
       type: 'android.emulator',
-      device: { avdName: 'Pixel_6_API_34' },
+      device: { avdName: 'Pixel_8_Pro' },
     },
   },
 
