@@ -40,6 +40,8 @@ export default function ReactionBoardScreen() {
   const [targetX, setTargetX] = useState(100);
   const [targetY, setTargetY] = useState(100);
   const targetStartTimeRef = useRef(0);
+  const fingerRef = useRef<{ x: number; y: number } | null>(null);
+
   const [tracingAttempts, setTracingAttempts] = useState(0);
   const [tracingHits, setTracingHits] = useState(0);
   const [tracingDelays, setTracingDelays] = useState<number[]>([]);
@@ -115,6 +117,73 @@ export default function ReactionBoardScreen() {
     setMessage(`${phaseName} result saved: ${value} ${unit}`);
   };
 
+  const moveTarget = () => {
+    const maxPosition = BOARD_SIZE - TARGET_SIZE;
+    setTargetX(Math.floor(Math.random() * maxPosition));
+    setTargetY(Math.floor(Math.random() * maxPosition));
+  };
+
+  useEffect(() => {
+    if (!tracingStarted || phase !== 'tracing') return;
+
+    const checkInterval = setInterval(async () => {
+      const finger = fingerRef.current;
+
+      if (!finger) {
+        return;
+      }
+
+      const centerX = targetX + TARGET_SIZE / 2;
+      const centerY = targetY + TARGET_SIZE / 2;
+
+      const dx = finger.x - centerX;
+      const dy = finger.y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      const hit = distance <= TARGET_SIZE * 1.5;
+      const delay = Date.now() - targetStartTimeRef.current;
+
+      const newAttempts = tracingAttempts + 1;
+      const newHits = hit ? tracingHits + 1 : tracingHits;
+      const newDelays = hit ? [...tracingDelays, delay] : tracingDelays;
+      const newAccuracy = Math.round((newHits / newAttempts) * 100);
+
+      setTracingAttempts(newAttempts);
+      setTracingHits(newHits);
+      setTracingDelays(newDelays);
+
+      if (hit) {
+        await saveResult('Tracing Challenge', delay, 'ms delay', newAccuracy);
+      }
+
+      if (newAttempts >= 20) {
+        setTracingStarted(false);
+        fingerRef.current = null;
+        setMessage(`Tracing complete. Accuracy: ${newAccuracy}%`);
+      }
+    }, 400);
+
+    return () => clearInterval(checkInterval);
+  }, [
+    tracingStarted,
+    phase,
+    targetX,
+    targetY,
+    tracingAttempts,
+    tracingHits,
+    tracingDelays,
+  ]);
+
+  useEffect(() => {
+    if (!tracingStarted || phase !== 'tracing') return;
+
+    const moveInterval = setInterval(() => {
+      moveTarget();
+    }, 700);
+
+    return () => clearInterval(moveInterval);
+  }, [tracingStarted, phase]);
+
   const changePhase = (newPhase: Phase) => {
     if (gameState === 'waiting' || gameState === 'tap') return;
 
@@ -124,6 +193,7 @@ export default function ReactionBoardScreen() {
     setGameState('ready');
     setReactionTime(null);
     setTracingStarted(false);
+    fingerRef.current = null;
 
     if (newPhase === 'dominant') {
       setMessage('Phase 1: Test reaction time with your dominant hand.');
@@ -172,57 +242,18 @@ export default function ReactionBoardScreen() {
     }
   };
 
-  const moveTarget = () => {
-    const maxPosition = BOARD_SIZE - TARGET_SIZE;
-
-    setTargetX(Math.floor(Math.random() * maxPosition));
-    setTargetY(Math.floor(Math.random() * maxPosition));
-  };
-
   const startTracing = () => {
     setTracingStarted(true);
     setTracingAttempts(0);
     setTracingHits(0);
     setTracingDelays([]);
+    fingerRef.current = null;
 
-    setMessage('Phase 3 started. Keep your finger tracing the moving target.');
-
-    moveTarget();
-  };
-
-  const handleTraceMove = async (locationX: number, locationY: number) => {
-    if (!tracingStarted || phase !== 'tracing') return;
-
-    const centerX = targetX + TARGET_SIZE / 2;
-    const centerY = targetY + TARGET_SIZE / 2;
-
-    const distance = Math.sqrt(
-      (locationX - centerX) ** 2 + (locationY - centerY) ** 2
+    setMessage(
+      'Trace the moving green target with your finger. Keep tracking it as it moves.'
     );
 
-    const hit = distance <= TARGET_SIZE / 2;
-    const delay = Date.now() - targetStartTimeRef.current;
-
-    const newAttempts = tracingAttempts + 1;
-    const newHits = hit ? tracingHits + 1 : tracingHits;
-    const newDelays = hit ? [...tracingDelays, delay] : tracingDelays;
-
-    const newAccuracy = Math.round((newHits / newAttempts) * 100);
-
-    setTracingAttempts(newAttempts);
-    setTracingHits(newHits);
-    setTracingDelays(newDelays);
-
-    if (hit) {
-      await saveResult('Tracing Challenge', delay, 'ms delay', newAccuracy);
-      setMessage(`Tracking success! Accuracy: ${newAccuracy}%`);
-      moveTarget();
-    }
-
-    if (newAttempts >= 20) {
-      setTracingStarted(false);
-      setMessage(`Tracing complete. Accuracy: ${newAccuracy}%`);
-    }
+    moveTarget();
   };
 
   const resetAttempts = () => {
@@ -240,13 +271,17 @@ export default function ReactionBoardScreen() {
     setTracingDelays([]);
 
     phaseProtoRef.current = {};
+    fingerRef.current = null;
 
     setMessage('Choose a phase, then start the test.');
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        scrollEnabled={!tracingStarted}
+        contentContainerStyle={styles.container}
+      >
         <Text variant="headlineLarge" style={styles.title}>
           Reaction Board Challenge
         </Text>
@@ -333,6 +368,7 @@ export default function ReactionBoardScreen() {
             <Button
               mode="contained"
               onPress={startTracing}
+              disabled={tracingStarted}
               style={styles.button}
             >
               Start Tracing Challenge
@@ -342,9 +378,16 @@ export default function ReactionBoardScreen() {
               style={styles.board}
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
+              onResponderGrant={(event) => {
+                const { locationX, locationY } = event.nativeEvent;
+                fingerRef.current = { x: locationX, y: locationY };
+              }}
               onResponderMove={(event) => {
                 const { locationX, locationY } = event.nativeEvent;
-                handleTraceMove(locationX, locationY);
+                fingerRef.current = { x: locationX, y: locationY };
+              }}
+              onResponderRelease={() => {
+                fingerRef.current = null;
               }}
             >
               <View
@@ -377,17 +420,17 @@ export default function ReactionBoardScreen() {
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Dominant Hand
             </Text>
-            <Text>Attempts: {dominantAttempts.length}</Text>
-            <Text>
+            <Text style={styles.cardText}>Attempts: {dominantAttempts.length}</Text>
+            <Text style={styles.cardText}>
               Average: {dominantAverage !== null ? `${dominantAverage} ms` : 'No data'}
             </Text>
-            <Text>
+            <Text style={styles.cardText}>
               Best:{' '}
               {calculateBest(dominantAttempts) !== null
                 ? `${calculateBest(dominantAttempts)} ms`
                 : 'No data'}
             </Text>
-            <Text>
+            <Text style={styles.cardText}>
               Worst:{' '}
               {calculateWorst(dominantAttempts) !== null
                 ? `${calculateWorst(dominantAttempts)} ms`
@@ -397,18 +440,18 @@ export default function ReactionBoardScreen() {
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Non-Dominant Hand
             </Text>
-            <Text>Attempts: {nonDominantAttempts.length}</Text>
-            <Text>
+            <Text style={styles.cardText}>Attempts: {nonDominantAttempts.length}</Text>
+            <Text style={styles.cardText}>
               Average:{' '}
               {nonDominantAverage !== null ? `${nonDominantAverage} ms` : 'No data'}
             </Text>
-            <Text>
+            <Text style={styles.cardText}>
               Best:{' '}
               {calculateBest(nonDominantAttempts) !== null
                 ? `${calculateBest(nonDominantAttempts)} ms`
                 : 'No data'}
             </Text>
-            <Text>
+            <Text style={styles.cardText}>
               Worst:{' '}
               {calculateWorst(nonDominantAttempts) !== null
                 ? `${calculateWorst(nonDominantAttempts)} ms`
@@ -424,11 +467,11 @@ export default function ReactionBoardScreen() {
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Tracing Challenge
             </Text>
-            <Text>Tracking Points: {tracingAttempts}</Text>
-            <Text>
+            <Text style={styles.cardText}>Tracking Points: {tracingAttempts}</Text>
+            <Text style={styles.cardText}>
               Accuracy: {tracingAccuracy !== null ? `${tracingAccuracy}%` : 'No data'}
             </Text>
-            <Text>
+            <Text style={styles.cardText}>
               Average Delay:{' '}
               {tracingAverageDelay !== null ? `${tracingAverageDelay} ms` : 'No data'}
             </Text>
@@ -488,25 +531,70 @@ export default function ReactionBoardScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { padding: 20, alignItems: 'center' },
-  title: { textAlign: 'center', marginBottom: 10 },
-  description: { textAlign: 'center', marginBottom: 20 },
-  phaseButtons: { width: '100%', marginBottom: 15 },
-  phaseButton: { marginBottom: 10 },
-  card: { width: '100%', marginBottom: 20 },
-  phaseText: { textAlign: 'center', marginBottom: 10 },
-  message: { textAlign: 'center', marginBottom: 10 },
-  result: { textAlign: 'center', marginTop: 8 },
-  buttonGroup: { width: '100%', marginBottom: 20 },
-  button: { width: '100%', marginBottom: 10 },
-  tapButton: { marginBottom: 10, paddingVertical: 10 },
+  safe: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  container: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#FFFFFF',
+  },
+  description: {
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#E5E7EB',
+  },
+  phaseButtons: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  phaseButton: {
+    marginBottom: 10,
+  },
+  card: {
+    width: '100%',
+    marginBottom: 20,
+    backgroundColor: '#1E293B',
+  },
+  phaseText: {
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#FFFFFF',
+  },
+  message: {
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#FFFFFF',
+  },
+  result: {
+    textAlign: 'center',
+    marginTop: 8,
+    color: '#22C55E',
+  },
+  buttonGroup: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  button: {
+    width: '100%',
+    marginBottom: 10,
+  },
+  tapButton: {
+    marginBottom: 10,
+    paddingVertical: 10,
+  },
   board: {
     width: BOARD_SIZE,
     height: BOARD_SIZE,
-    backgroundColor: '#eeeeee',
+    backgroundColor: '#1E293B',
     borderWidth: 2,
-    borderColor: '#999',
+    borderColor: '#94A3B8',
     borderRadius: 12,
     alignSelf: 'center',
     position: 'relative',
@@ -518,10 +606,28 @@ const styles = StyleSheet.create({
     width: TARGET_SIZE,
     height: TARGET_SIZE,
     borderRadius: TARGET_SIZE / 2,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#22C55E',
   },
-  centerText: { textAlign: 'center' },
-  attemptTitle: { marginBottom: 10, textAlign: 'center' },
-  sectionTitle: { marginTop: 12, marginBottom: 4 },
-  comparison: { marginTop: 15, textAlign: 'center' },
+  centerText: {
+    textAlign: 'center',
+    color: '#FFFFFF',
+  },
+  attemptTitle: {
+    marginBottom: 10,
+    textAlign: 'center',
+    color: '#FFFFFF',
+  },
+  sectionTitle: {
+    marginTop: 12,
+    marginBottom: 4,
+    color: '#FFFFFF',
+  },
+  cardText: {
+    color: '#E5E7EB',
+  },
+  comparison: {
+    marginTop: 15,
+    textAlign: 'center',
+    color: '#22C55E',
+  },
 });
